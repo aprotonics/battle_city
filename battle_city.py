@@ -4,6 +4,8 @@ import random
 import os
 
 
+
+
 def draw_shield_bar(surf, x, y, pct):
     if pct < 0:
         pct = 0
