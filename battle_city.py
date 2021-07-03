@@ -1,17 +1,9 @@
-# Добавлено появление противника с задержкой и ограниченное количество противников
+# Добавлено появление игрока с задержкой и экран "Конец игры"
 import pygame
 import random
 import os
 import math
 
-
-def create_enemy():
-        enemy = Enemy()
-        all_sprites.add(enemy)
-        enemies.add(enemy)
-
-def show_go_screen():
-    pass
 
 def get_time():
     now = pygame.time.get_ticks()
@@ -53,6 +45,27 @@ def draw_lives(surf, x, y, lives, img):
         img_rect.y = y
         surf.blit(img, img_rect)
 
+def create_enemy():
+    enemy = Enemy()
+    all_sprites.add(enemy)
+    enemies.add(enemy)
+
+def show_go_screen():
+    screen.blit(background, background_rect)
+    draw_text(screen, WIDTH / 2, HEIGHT / 4, "Hello", 64)
+    draw_text(screen, WIDTH / 2, HEIGHT / 2, "Arrow keys move, Space to fire", 22)
+    draw_text(screen, WIDTH / 2, HEIGHT * 3 / 4, "Press a key to begin", 18)
+    pygame.display.flip()
+    waiting = True
+    while waiting:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYUP:
+                waiting = False
+
+            
 
 WIDTH = 600 # ширина игрового окна
 HEIGHT = 600 # высота игрового окна
@@ -179,12 +192,13 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         # Показать, если скрыто
-        if self.hidden and pygame.time.get_ticks() - self.hide_timer > 1000:
+        if self.hidden and pygame.time.get_ticks() - self.hide_timer > 2100:
             self.hidden = False
             self.rect.centerx = WIDTH / 2
             self.rect.bottom = HEIGHT 
 
-        self.move()
+        if not self.hidden:
+            self.move()
         
         # Проверка на выход за пределы экрана
         if self.rect.right > WIDTH:
@@ -405,6 +419,9 @@ class Tile(pygame.sprite.Sprite):
 
 
 # Загрузка изображений
+background = pygame.image.load(os.path.join(img_dir, "background.png")).convert()
+background_rect = background.get_rect()
+
 player_img = pygame.image.load(os.path.join(img_dir, "player_01.png")).convert()
 player_img = pygame.transform.scale(player_img, (50, 50))
 player_mini_img = pygame.transform.scale(player_img, (25, 25))
@@ -451,11 +468,9 @@ game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
 
 
 score = 0
-start_time = pygame.time.get_ticks()
-enemy_respawn_time = start_time
+appearance_delay = 2100
 total_enemy_count = 10
 current_enemy_count = 0
-game_start_sound.play()
 # Цикл игры
 game_over = True
 running = True
@@ -463,6 +478,9 @@ while running:
     if game_over:
         show_go_screen()
         game_over = False
+        start_time = pygame.time.get_ticks()
+        enemy_respawn_time = start_time
+        game_start_sound.play()
         all_sprites = pygame.sprite.Group()
         enemies = pygame.sprite.Group()
         player_bullets = pygame.sprite.Group()
@@ -471,6 +489,7 @@ while running:
         tiles = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
+        player.hide()
         
         # Создание стен
         for i in range(5):
@@ -495,11 +514,12 @@ while running:
 
     # Обновление
     all_sprites.update()
-    now_time = get_time()
+    now = pygame.time.get_ticks()
+    now_time = get_time() 
 
     # Добавление противников
-    if pygame.time.get_ticks() - enemy_respawn_time >= 2100 and total_enemy_count > 0 and current_enemy_count < 3:
-        enemy_respawn_time = pygame.time.get_ticks()
+    if now - enemy_respawn_time >= appearance_delay and total_enemy_count > 0 and current_enemy_count < 3:
+        enemy_respawn_time = now
         create_enemy()
         total_enemy_count -= 1
         current_enemy_count += 1
@@ -523,14 +543,14 @@ while running:
             player.lives -= 1
             player.shield = 100
             explosion_sound.play()
-        # Если игрок умер, игра окончена
+    # Если игрок умер, игра окончена
     if player.lives == 0 and not explosion.alive():
         game_over_sound.play()
-        game_over = True    
+        game_over = True  
 
     # Проверка, не ударила ли пуля противника
-    hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True) # Учесть ограниченное количество 
-    for hit in hits:                                                # появлений противников
+    hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True)
+    for hit in hits:
         current_enemy_count -= 1
         enemy_respawn_time = pygame.time.get_ticks()
         score += 100
@@ -541,7 +561,16 @@ while running:
             powerup = Powerup(hit.rect.center)
             all_sprites.add(powerup)
             powerups.add(powerup)
+    
+    # Проверка, не столкнулся ли игрок со стеной
+    if pygame.sprite.spritecollide(player, tiles, False):
+        player.stop()
 
+    # Проверка, не столкнулся ли противник со стеной
+    hits = pygame.sprite.groupcollide(enemies, tiles, False, False)
+    for hit in hits:
+        hit.stop()
+    
     # Проверка столкновений игрока и улучшений
     hits = pygame.sprite.spritecollide(player, powerups, True)
     for hit in hits:
@@ -561,20 +590,12 @@ while running:
         if hit.type == "time":
             pass
 
-    # Проверка, не столкнулся ли игрок со стеной
-    if pygame.sprite.spritecollide(player, tiles, False):
-        player.stop()
-    
-    # Проверка, не столкнулся ли противник со стеной
-    hits = pygame.sprite.groupcollide(enemies, tiles, False, False)
-    for hit in hits:
-        hit.stop()
-
     # Проверка, не столкнулись ли противник и игрок
-    hits = pygame.sprite.spritecollide(player, enemies, False)
-    for hit in hits:
-        player.stop()
-        hit.stop()
+    if now - start_time >= appearance_delay:
+        hits = pygame.sprite.spritecollide(player, enemies, False)
+        for hit in hits:
+            player.stop()
+            hit.stop()
     
     # Проверка, не столкнулись ли противники друг с другом
     # hits = pygame.sprite.groupcollide(enemies, enemies, False, False)
