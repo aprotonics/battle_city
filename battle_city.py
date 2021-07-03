@@ -1,10 +1,33 @@
-# Добавлены улучшения
+# Добавлены звуки и таймер
 import pygame
 import random
 import os
+import math
 
 
+def show_go_screen():
+    pass
 
+def get_time():
+    now_time = pygame.time.get_ticks()
+    seconds = math.trunc((now_time - start_time) / 1000)
+    minutes = 0
+    while seconds >= 60:
+        minutes += 1
+        seconds -= 60
+    if seconds < 10:
+        seconds = "0" + str(seconds)
+    if minutes < 10:
+        minutes = "0" + str(minutes)
+    time = str(minutes) + ":" + str(seconds)
+    return time
+
+def draw_text(surf, x, y, text, size):
+    font = pygame.font.Font(font_name, size)
+    text_surface = font.render(text, True, WHITE)
+    text_rect = text_surface.get_rect()
+    text_rect.midtop = (x, y)
+    surf.blit(text_surface, text_rect)
 
 def draw_shield_bar(surf, x, y, pct):
     if pct < 0:
@@ -19,6 +42,7 @@ def draw_shield_bar(surf, x, y, pct):
 
 def draw_lives(surf, x, y, lives, img):
     for i in range(lives):
+        img.set_colorkey(BLACK)
         img_rect = img.get_rect()
         img_rect.x = x + 30 * i
         img_rect.y = y
@@ -44,7 +68,7 @@ pygame.mixer.init() # для звука
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Battle city")
 clock = pygame.time.Clock()
-
+font_name = pygame.font.match_font('arial')
 
 # настройка папки ассетов
 img_dir = os.path.join(os.path.dirname(__file__), "img")
@@ -55,6 +79,7 @@ class Player(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.image = player_img
+        self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = WIDTH / 2
         self.rect.bottom = HEIGHT
@@ -81,6 +106,7 @@ class Player(pygame.sprite.Sprite):
         new_image = pygame.transform.rotate(player_img, angle)
         old_center = self.rect.center
         self.image = new_image
+        self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = old_center
 
@@ -139,6 +165,7 @@ class Player(pygame.sprite.Sprite):
             player_bullet = Player_bullet(x, y, self.direction)
             all_sprites.add(player_bullet)
             player_bullets.add(player_bullet)
+            shoot_sound.play()
 
     def hide(self):
         self.hidden = True
@@ -170,6 +197,7 @@ class Enemy(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.rand_image = random.choice(enemy_images)
         self.image = self.rand_image
+        self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = random.choice([25, WIDTH / 2, WIDTH - 25]) # Генерация случайного места появления
         self.rect.y = 0
@@ -195,6 +223,7 @@ class Enemy(pygame.sprite.Sprite):
         new_image = pygame.transform.rotate(self.rand_image, angle)
         old_center = self.rect.center
         self.image = new_image
+        self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = old_center
     
@@ -262,7 +291,7 @@ class Enemy(pygame.sprite.Sprite):
             self.stop()
         
 
-class Player_bullet(pygame.sprite.Sprite):
+class Bullet(pygame.sprite.Sprite):
     def __init__(self, centerx, centery, direction):
         pygame.sprite.Sprite.__init__(self)
         self.image = bullet_img
@@ -273,56 +302,7 @@ class Player_bullet(pygame.sprite.Sprite):
         self.speedx = 10
         self.speedy = -10
         self.rotate(self.direction)
-    
-    def update(self):
-        # Проверка направления движения пули
-        if self.direction == "up":
-            self.rect.y += self.speedy
-            if self.rect.bottom < 0:
-                self.kill()
-        if self.direction == "right":
-            self.rect.x += self.speedx
-            if self.rect.left > WIDTH:
-                self.kill()
-        if self.direction == "down":
-            self.rect.y -= self.speedy
-            if self.rect.top > HEIGHT:
-                self.kill()
-        if self.direction == "left":
-            self.rect.x -= self.speedx
-            if self.rect.right < 0:
-                self.kill()
-    
-    def rotate(self, direction):
-        angle = 0
-        if direction == "up":
-            angle = 0
-        elif direction == "right":
-            angle = -90
-        elif direction == "down":
-            angle = -180
-        elif direction == "left":
-            angle = 90
-        new_image = pygame.transform.rotate(bullet_img, angle)
-        old_center = self.rect.center
-        self.image = new_image
-        self.image.fill(YELLOW)
-        self.rect = self.image.get_rect()
-        self.rect.center = old_center
 
-
-class Enemy_bullet(pygame.sprite.Sprite):
-    def __init__(self, centerx, centery, direction):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = bullet_img
-        self.image.fill(YELLOW)
-        self.rect = self.image.get_rect()
-        self.rect.center = (centerx, centery)
-        self.direction = direction
-        self.speedx = 10
-        self.speedy = -10
-        self.rotate(self.direction)
-    
     def rotate(self, direction):
         angle = 0
         if direction == "up":
@@ -358,12 +338,21 @@ class Enemy_bullet(pygame.sprite.Sprite):
             self.rect.x -= self.speedx
             if self.rect.right < 0:
                 self.kill()
+
+
+class Player_bullet(Bullet):
+    pass
+    
+
+class Enemy_bullet(Bullet):
+    pass
 
 
 class Explosion(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
         self.image = explosion_anim[0]
+        self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center
         self.frame = 0
@@ -380,6 +369,7 @@ class Explosion(pygame.sprite.Sprite):
             else:
                 center = self.rect.center
                 self.image = explosion_anim[self.frame]
+                self.image.set_colorkey(BLACK)
                 self.rect = self.image.get_rect()
                 self.rect.center = center
 
@@ -389,6 +379,7 @@ class Powerup(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.type = "life"
         self.image = powerup_images[self.type]
+        self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center
 
@@ -421,7 +412,6 @@ for i in range(1, 3):
     img = pygame.transform.rotate(img, 180)
     enemy_images.append(img)
 
-
 bullet_img = pygame.Surface((8, 16))
 
 explosion_anim = []
@@ -447,34 +437,46 @@ powerup_images["time"] = pygame.transform.scale(powerup_images["time"], (40, 40)
 
 
 # Загрузка звуков
+game_start_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gamestart.ogg"))
+shoot_sound = pygame.mixer.Sound(os.path.join(snd_dir, "fire.ogg"))
+powerup_sound = pygame.mixer.Sound(os.path.join(snd_dir, "powerup.wav"))
+hit_sound = pygame.mixer.Sound(os.path.join(snd_dir, "hit.wav"))
+explosion_sound = pygame.mixer.Sound(os.path.join(snd_dir, "explosion.ogg"))
+game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
 
 
-all_sprites = pygame.sprite.Group()
-enemies = pygame.sprite.Group()
-player_bullets = pygame.sprite.Group()
-enemy_bullets = pygame.sprite.Group()
-powerups = pygame.sprite.Group()
-tiles = pygame.sprite.Group()
-player = Player()
-all_sprites.add(player)
-for i in range(1):
-    enemy = Enemy()
-    all_sprites.add(enemy)
-    enemies.add(enemy)
-
-
-# Создание стен
-for i in range(5):
-    for j in range(0, 241, 120):
-        x = i * 120
-        tile = Tile(x, j)
-        all_sprites.add(tile)
-        tiles.add(tile)
-
-
+score = 0
+start_time = pygame.time.get_ticks()
+game_start_sound.play()
 # Цикл игры
+game_over = True
 running = True
 while running:
+    if game_over:
+        show_go_screen()
+        game_over = False
+        all_sprites = pygame.sprite.Group()
+        enemies = pygame.sprite.Group()
+        player_bullets = pygame.sprite.Group()
+        enemy_bullets = pygame.sprite.Group()
+        powerups = pygame.sprite.Group()
+        tiles = pygame.sprite.Group()
+        player = Player()
+        all_sprites.add(player)
+        for i in range(1):
+            enemy = Enemy()
+            all_sprites.add(enemy)
+            enemies.add(enemy)
+        
+        # Создание стен
+        for i in range(5):
+            for j in range(0, 241, 120):
+                x = i * 120
+                tile = Tile(x, j)
+                all_sprites.add(tile)
+                tiles.add(tile)
+
+    
     # Держим цикл на правильной скорости
     clock.tick(FPS)
     # Ввод процесса (события)
@@ -489,6 +491,7 @@ while running:
 
     # Обновление
     all_sprites.update()
+    now_time = get_time()
 
     # Проверка, не столкнулась ли пуля игрока со стеной
     hits = pygame.sprite.groupcollide(tiles, player_bullets, False, True)
@@ -500,24 +503,29 @@ while running:
     hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
     for hit in hits:
         player.shield -= 25
+        hit_sound.play()
         if player.shield <= 0:
             explosion = Explosion(hit.rect.center)
             all_sprites.add(explosion)
             player.hide()
             player.lives -= 1
             player.shield = 100
+            explosion_sound.play()
         # Если игрок умер, игра окончена
     if player.lives == 0 and not explosion.alive():
-        running = False    
+        game_over_sound.play()
+        game_over = True    
 
     # Проверка, не ударила ли пуля противника
     hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True) # Учесть ограниченное количество 
     for hit in hits:                                                # появлений противников
+        score += 100
         explosion = Explosion(hit.rect.center)
         all_sprites.add(explosion)
         enemy = Enemy()
         all_sprites.add(enemy)
         enemies.add(enemy)
+        explosion_sound.play()
         if random.random() > 0.8:
             powerup = Powerup(hit.rect.center)
             all_sprites.add(powerup)
@@ -526,6 +534,7 @@ while running:
     # Проверка столкновений игрока и улучшений
     hits = pygame.sprite.spritecollide(player, powerups, True)
     for hit in hits:
+        powerup_sound.play()
         if hit.type == "gun":
             pass
         if hit.type == "shield":
@@ -558,7 +567,9 @@ while running:
     # Визуализация (сборка)
     screen.fill(BLACK)
     all_sprites.draw(screen)
-    draw_shield_bar(screen, 5, 5, player.shield)
+    draw_text(screen, WIDTH / 3 + 25, 5, str(now_time), 24)
+    draw_text(screen, WIDTH / 3 * 2 - 25, 5, str(score), 24)
+    draw_shield_bar(screen, 5, 10, player.shield)
     draw_lives(screen, WIDTH - 100, 5, player.lives, player_mini_img)
 
     # после отрисовки всего, переворачиваем экран
