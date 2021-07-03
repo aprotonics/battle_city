@@ -1,7 +1,26 @@
-# Добавлены взрывы
+# Добавлены щит, жизни игрока и их отображение
 import pygame
 import random
 import os
+
+
+def draw_shield_bar(surf, x, y, pct):
+    if pct < 0:
+        pct = 0
+    BAR_LENGTH = 100
+    BAR_HEIGHT = 10
+    fill = (pct / 100) * BAR_LENGTH
+    outline_rect = pygame.Rect(x, y, BAR_LENGTH, BAR_HEIGHT)
+    fill_rect = pygame.Rect(x, y, fill, BAR_HEIGHT)
+    pygame.draw.rect(surf, GREEN, fill_rect)
+    pygame.draw.rect(surf, WHITE, outline_rect, 2)
+
+def draw_lives(surf, x, y, lives, img):
+    for i in range(lives):
+        img_rect = img.get_rect()
+        img_rect.x = x + 30 * i
+        img_rect.y = y
+        surf.blit(img, img_rect)
 
 
 WIDTH = 600 # ширина игрового окна
@@ -42,6 +61,10 @@ class Player(pygame.sprite.Sprite):
         self.speedy = 0
         self.shoot_delay = 400
         self.last_shot = pygame.time.get_ticks()
+        self.shield = 100
+        self.lives = 3
+        self.hidden = False
+        self.hide_timer = pygame.time.get_ticks()
     
     def rotate(self, direction):
         angle = 0
@@ -114,8 +137,19 @@ class Player(pygame.sprite.Sprite):
             player_bullet = Player_bullet(x, y, self.direction)
             all_sprites.add(player_bullet)
             player_bullets.add(player_bullet)
-      
+
+    def hide(self):
+        self.hidden = True
+        self.hide_timer = pygame.time.get_ticks()
+        self.rect.center = (WIDTH / 2, HEIGHT + 200)
+
     def update(self):
+        # Показать, если скрыто
+        if self.hidden and pygame.time.get_ticks() - self.hide_timer > 1000:
+            self.hidden = False
+            self.rect.centerx = WIDTH / 2
+            self.rect.bottom = HEIGHT 
+
         self.move()
         
         # Проверка на выход за пределы экрана
@@ -370,6 +404,7 @@ class Tile(pygame.sprite.Sprite):
 # Загрузка изображений
 player_img = pygame.image.load(os.path.join(img_dir, "player_01.png")).convert()
 player_img = pygame.transform.scale(player_img, (50, 50))
+player_mini_img = pygame.transform.scale(player_img, (25, 25))
 enemy_img = pygame.image.load(os.path.join(img_dir, "enemy_101.png")).convert()
 enemy_img = pygame.transform.scale(enemy_img, (50, 50))
 enemy_img = pygame.transform.rotate(enemy_img, 180)
@@ -431,9 +466,16 @@ while running:
     # Проверка, не ударила ли пуля игрока
     hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
     for hit in hits:
-        explosion = Explosion(hit.rect.center)
-        all_sprites.add(explosion)
-        running = False
+        player.shield -= 25
+        if player.shield <= 0:
+            explosion = Explosion(hit.rect.center)
+            all_sprites.add(explosion)
+            player.hide()
+            player.lives -= 1
+            player.shield = 100
+        # Если игрок умер, игра окончена
+    if player.lives == 0 and not explosion.alive():
+        running = False    
 
     # Проверка, не ударила ли пуля противника
     hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True) # Учесть ограниченное количество 
@@ -461,6 +503,8 @@ while running:
     # Визуализация (сборка)
     screen.fill(BLACK)
     all_sprites.draw(screen)
+    draw_shield_bar(screen, 5, 5, player.shield)
+    draw_lives(screen, WIDTH - 100, 5, player.lives, player_mini_img)
 
     # после отрисовки всего, переворачиваем экран
     pygame.display.flip()
