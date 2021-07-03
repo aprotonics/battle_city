@@ -503,8 +503,9 @@ while running:
     hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
     for hit in hits:
         player.shield -= 25
-        hit_sound.play()
-        if player.shield <= 0:
+        if player.shield > 0:
+            hit_sound.play()
+        else:
             explosion = Explosion(hit.rect.center)
             all_sprites.add(explosion)
             player.hide()
