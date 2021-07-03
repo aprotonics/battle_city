@@ -1,16 +1,21 @@
-# Добавлены звуки и таймер
+# Добавлено появление противника с задержкой и ограниченное количество противников
 import pygame
 import random
 import os
 import math
 
 
+def create_enemy():
+        enemy = Enemy()
+        all_sprites.add(enemy)
+        enemies.add(enemy)
+
 def show_go_screen():
     pass
 
 def get_time():
-    now_time = pygame.time.get_ticks()
-    seconds = math.trunc((now_time - start_time) / 1000)
+    now = pygame.time.get_ticks()
+    seconds = math.trunc((now - start_time) / 1000)
     minutes = 0
     while seconds >= 60:
         minutes += 1
@@ -428,8 +433,8 @@ powerup_images["shield"] = pygame.image.load(os.path.join(img_dir, "powerup_02.p
 powerup_images["shield"] = pygame.transform.scale(powerup_images["shield"], (40, 40))
 powerup_images["base"] = pygame.image.load(os.path.join(img_dir, "powerup_03.png")).convert()
 powerup_images["base"] = pygame.transform.scale(powerup_images["base"], (40, 40))
-powerup_images["health"] = pygame.image.load(os.path.join(img_dir, "powerup_04.png")).convert()
-powerup_images["health"] = pygame.transform.scale(powerup_images["health"], (40, 40))
+powerup_images["levelup"] = pygame.image.load(os.path.join(img_dir, "powerup_04.png")).convert()
+powerup_images["levelup"] = pygame.transform.scale(powerup_images["levelup"], (40, 40))
 powerup_images["life"] = pygame.image.load(os.path.join(img_dir, "powerup_05.png")).convert()
 powerup_images["life"] = pygame.transform.scale(powerup_images["life"], (40, 40))
 powerup_images["time"] = pygame.image.load(os.path.join(img_dir, "powerup_06.png")).convert()
@@ -447,6 +452,9 @@ game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
 
 score = 0
 start_time = pygame.time.get_ticks()
+enemy_respawn_time = start_time
+total_enemy_count = 10
+current_enemy_count = 0
 game_start_sound.play()
 # Цикл игры
 game_over = True
@@ -463,10 +471,6 @@ while running:
         tiles = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
-        for i in range(1):
-            enemy = Enemy()
-            all_sprites.add(enemy)
-            enemies.add(enemy)
         
         # Создание стен
         for i in range(5):
@@ -492,6 +496,13 @@ while running:
     # Обновление
     all_sprites.update()
     now_time = get_time()
+
+    # Добавление противников
+    if pygame.time.get_ticks() - enemy_respawn_time >= 2100 and total_enemy_count > 0 and current_enemy_count < 3:
+        enemy_respawn_time = pygame.time.get_ticks()
+        create_enemy()
+        total_enemy_count -= 1
+        current_enemy_count += 1
 
     # Проверка, не столкнулась ли пуля игрока со стеной
     hits = pygame.sprite.groupcollide(tiles, player_bullets, False, True)
@@ -520,12 +531,11 @@ while running:
     # Проверка, не ударила ли пуля противника
     hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True) # Учесть ограниченное количество 
     for hit in hits:                                                # появлений противников
+        current_enemy_count -= 1
+        enemy_respawn_time = pygame.time.get_ticks()
         score += 100
         explosion = Explosion(hit.rect.center)
         all_sprites.add(explosion)
-        enemy = Enemy()
-        all_sprites.add(enemy)
-        enemies.add(enemy)
         explosion_sound.play()
         if random.random() > 0.8:
             powerup = Powerup(hit.rect.center)
@@ -542,7 +552,7 @@ while running:
             pass
         if hit.type == "base":
             pass
-        if hit.type == "health":
+        if hit.type == "levelup":
             pass
         if hit.type == "life":
             player.lives += 1
@@ -556,14 +566,20 @@ while running:
         player.stop()
     
     # Проверка, не столкнулся ли противник со стеной
-    if pygame.sprite.spritecollide(enemy, tiles, False):
-        enemy.stop()
+    hits = pygame.sprite.groupcollide(enemies, tiles, False, False)
+    for hit in hits:
+        hit.stop()
 
     # Проверка, не столкнулись ли противник и игрок
-    if pygame.sprite.collide_rect(player, enemy):
+    hits = pygame.sprite.spritecollide(player, enemies, False)
+    for hit in hits:
         player.stop()
-        enemy.stop()
-
+        hit.stop()
+    
+    # Проверка, не столкнулись ли противники друг с другом
+    # hits = pygame.sprite.groupcollide(enemies, enemies, False, False)
+    # for hit in hits:
+    #     hit.stop()
 
     # Визуализация (сборка)
     screen.fill(BLACK)
