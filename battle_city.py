@@ -1,4 +1,4 @@
-# Добавлено движение противника по уровню и стрельба противника
+# Добавлены взрывы
 import pygame
 import random
 import os
@@ -225,8 +225,8 @@ class Enemy(pygame.sprite.Sprite):
             self.stop()
         
 
-class Player_bullet(pygame.sprite.Sprite): # Разделить класс на пули игрока и пули противников
-    def __init__(self, centerx, centery, direction):             # чтобы не было дружественного огня
+class Player_bullet(pygame.sprite.Sprite):
+    def __init__(self, centerx, centery, direction):
         pygame.sprite.Sprite.__init__(self)
         self.image = bullet_img
         self.image.fill(YELLOW)
@@ -324,11 +324,27 @@ class Enemy_bullet(pygame.sprite.Sprite):
 
 
 class Explosion(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
+        self.image = explosion_anim[0]
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.frame_rate = 120
     
     def update(self):
-        pass
+        now = pygame.time.get_ticks()
+        if now - self.last_update > self.frame_rate:
+            self.last_update = now
+            self.frame += 1
+            if self.frame == len(explosion_anim):
+                self.kill()
+            else:
+                center = self.rect.center
+                self.image = explosion_anim[self.frame]
+                self.rect = self.image.get_rect()
+                self.rect.center = center
 
 
 class Powerup(pygame.sprite.Sprite):
@@ -358,6 +374,12 @@ enemy_img = pygame.image.load(os.path.join(img_dir, "enemy_101.png")).convert()
 enemy_img = pygame.transform.scale(enemy_img, (50, 50))
 enemy_img = pygame.transform.rotate(enemy_img, 180)
 bullet_img = pygame.Surface((8, 16))
+explosion_anim = []
+for i in range(1, 4):
+    filename = f"expl_{i}.png"
+    img = pygame.image.load(os.path.join(img_dir, filename)).convert()
+    img = pygame.transform.scale(img, (50, 50))
+    explosion_anim.append(img)
 
 
 all_sprites = pygame.sprite.Group()
@@ -409,11 +431,15 @@ while running:
     # Проверка, не ударила ли пуля игрока
     hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
     for hit in hits:
+        explosion = Explosion(hit.rect.center)
+        all_sprites.add(explosion)
         running = False
 
     # Проверка, не ударила ли пуля противника
     hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True) # Учесть ограниченное количество 
     for hit in hits:                                                # появлений противников
+        explosion = Explosion(hit.rect.center)
+        all_sprites.add(explosion)
         enemy = Enemy()
         all_sprites.add(enemy)
         enemies.add(enemy)
