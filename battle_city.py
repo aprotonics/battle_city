@@ -1,4 +1,4 @@
-# Добавлены щит, жизни игрока и их отображение
+# Добавлены улучшения
 import pygame
 import random
 import os
@@ -166,7 +166,8 @@ class Player(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = enemy_img
+        self.rand_image = random.choice(enemy_images)
+        self.image = self.rand_image
         self.rect = self.image.get_rect()
         self.rect.centerx = random.choice([25, WIDTH / 2, WIDTH - 25]) # Генерация случайного места появления
         self.rect.y = 0
@@ -189,7 +190,7 @@ class Enemy(pygame.sprite.Sprite):
             angle = 0
         elif direction == "left":
             angle = -90
-        new_image = pygame.transform.rotate(enemy_img, angle)
+        new_image = pygame.transform.rotate(self.rand_image, angle)
         old_center = self.rect.center
         self.image = new_image
         self.rect = self.image.get_rect()
@@ -382,8 +383,12 @@ class Explosion(pygame.sprite.Sprite):
 
 
 class Powerup(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
+        self.type = "life"
+        self.image = powerup_images[self.type]
+        self.rect = self.image.get_rect()
+        self.rect.center = center
 
     def update(self):
         pass
@@ -405,10 +410,18 @@ class Tile(pygame.sprite.Sprite):
 player_img = pygame.image.load(os.path.join(img_dir, "player_01.png")).convert()
 player_img = pygame.transform.scale(player_img, (50, 50))
 player_mini_img = pygame.transform.scale(player_img, (25, 25))
-enemy_img = pygame.image.load(os.path.join(img_dir, "enemy_101.png")).convert()
-enemy_img = pygame.transform.scale(enemy_img, (50, 50))
-enemy_img = pygame.transform.rotate(enemy_img, 180)
+
+enemy_images = []
+for i in range(1, 3):
+    filename = f"enemy_{i}01.png"
+    img = pygame.image.load(os.path.join(img_dir, filename)).convert()
+    img = pygame.transform.scale(img, (50, 50))
+    img = pygame.transform.rotate(img, 180)
+    enemy_images.append(img)
+
+
 bullet_img = pygame.Surface((8, 16))
+
 explosion_anim = []
 for i in range(1, 4):
     filename = f"expl_{i}.png"
@@ -416,11 +429,29 @@ for i in range(1, 4):
     img = pygame.transform.scale(img, (50, 50))
     explosion_anim.append(img)
 
+powerup_images = {}
+powerup_images["gun"] = pygame.image.load(os.path.join(img_dir, "powerup_01.png")).convert()
+powerup_images["gun"] = pygame.transform.scale(powerup_images["gun"], (40, 40))
+powerup_images["shield"] = pygame.image.load(os.path.join(img_dir, "powerup_02.png")).convert()
+powerup_images["shield"] = pygame.transform.scale(powerup_images["shield"], (40, 40))
+powerup_images["base"] = pygame.image.load(os.path.join(img_dir, "powerup_03.png")).convert()
+powerup_images["base"] = pygame.transform.scale(powerup_images["base"], (40, 40))
+powerup_images["health"] = pygame.image.load(os.path.join(img_dir, "powerup_04.png")).convert()
+powerup_images["health"] = pygame.transform.scale(powerup_images["health"], (40, 40))
+powerup_images["life"] = pygame.image.load(os.path.join(img_dir, "powerup_05.png")).convert()
+powerup_images["life"] = pygame.transform.scale(powerup_images["life"], (40, 40))
+powerup_images["time"] = pygame.image.load(os.path.join(img_dir, "powerup_06.png")).convert()
+powerup_images["time"] = pygame.transform.scale(powerup_images["time"], (40, 40))
+
+
+# Загрузка звуков
+
 
 all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 player_bullets = pygame.sprite.Group()
 enemy_bullets = pygame.sprite.Group()
+powerups = pygame.sprite.Group()
 tiles = pygame.sprite.Group()
 player = Player()
 all_sprites.add(player)
@@ -485,6 +516,28 @@ while running:
         enemy = Enemy()
         all_sprites.add(enemy)
         enemies.add(enemy)
+        if random.random() > 0.8:
+            powerup = Powerup(hit.rect.center)
+            all_sprites.add(powerup)
+            powerups.add(powerup)
+
+    # Проверка столкновений игрока и улучшений
+    hits = pygame.sprite.spritecollide(player, powerups, True)
+    for hit in hits:
+        if hit.type == "gun":
+            pass
+        if hit.type == "shield":
+            pass
+        if hit.type == "base":
+            pass
+        if hit.type == "health":
+            pass
+        if hit.type == "life":
+            player.lives += 1
+            if player.lives >= 3:
+                player.lives = 3
+        if hit.type == "time":
+            pass
 
     # Проверка, не столкнулся ли игрок со стеной
     if pygame.sprite.spritecollide(player, tiles, False):
