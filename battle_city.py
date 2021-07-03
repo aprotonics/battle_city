@@ -1,4 +1,4 @@
-# Добавлено появление игрока с задержкой и экран "Конец игры"
+# Добавлен класс Spawn
 import pygame
 import random
 import os
@@ -45,8 +45,8 @@ def draw_lives(surf, x, y, lives, img):
         img_rect.y = y
         surf.blit(img, img_rect)
 
-def create_enemy():
-    enemy = Enemy()
+def create_enemy(centerx):
+    enemy = Enemy(centerx)
     all_sprites.add(enemy)
     enemies.add(enemy)
 
@@ -212,13 +212,13 @@ class Player(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, centerx):
         pygame.sprite.Sprite.__init__(self)
         self.rand_image = random.choice(enemy_images)
         self.image = self.rand_image
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
-        self.rect.centerx = random.choice([25, WIDTH / 2, WIDTH - 25]) # Генерация случайного места появления
+        self.rect.centerx = centerx
         self.rect.y = 0
         self.direction = "down"
         self.moving_time = 0
@@ -418,6 +418,31 @@ class Tile(pygame.sprite.Sprite):
         pass
 
 
+class Spawn(pygame.sprite.Sprite):
+    def __init__(self, centerx):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = spawn_images[0]
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = centerx
+        self.rect.y = 0
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.frame_rate = 50
+
+    def update(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > self.frame_rate:
+            self.last_update = now
+            self.frame = int(not bool(self.frame)) # 0 либо 1
+            centerx = self.rect.centerx
+            self.image = spawn_images[self.frame]
+            self.image.set_colorkey(BLACK)
+            self.rect = self.image.get_rect()
+            self.rect.centerx = centerx
+            self.rect.y = 0
+
+
 # Загрузка изображений
 background = pygame.image.load(os.path.join(img_dir, "background.png")).convert()
 background_rect = background.get_rect()
@@ -457,6 +482,13 @@ powerup_images["life"] = pygame.transform.scale(powerup_images["life"], (40, 40)
 powerup_images["time"] = pygame.image.load(os.path.join(img_dir, "powerup_06.png")).convert()
 powerup_images["time"] = pygame.transform.scale(powerup_images["time"], (40, 40))
 
+spawn_images = []
+for i in range(1, 3):
+    filename = f"spawn_0{i}.png"
+    img = pygame.image.load(os.path.join(img_dir, filename)).convert()
+    img = pygame.transform.scale(img, (50, 50))
+    spawn_images.append(img)
+
 
 # Загрузка звуков
 game_start_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gamestart.ogg"))
@@ -483,10 +515,12 @@ while running:
         game_start_sound.play()
         all_sprites = pygame.sprite.Group()
         enemies = pygame.sprite.Group()
+        new_enemies = pygame.sprite.Group()
         player_bullets = pygame.sprite.Group()
         enemy_bullets = pygame.sprite.Group()
         powerups = pygame.sprite.Group()
         tiles = pygame.sprite.Group()
+        spawns = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
         player.hide()
@@ -498,7 +532,12 @@ while running:
                 tile = Tile(x, j)
                 all_sprites.add(tile)
                 tiles.add(tile)
-
+        
+        # Создание spawn
+        spawn_centerxs = [random.choice([25, WIDTH / 2, WIDTH - 25]) for i in range(10)]
+        spawn = Spawn(spawn_centerxs[0])
+        all_sprites.add(spawn)
+        spawns.add(spawn)
     
     # Держим цикл на правильной скорости
     clock.tick(FPS)
@@ -517,12 +556,16 @@ while running:
     now = pygame.time.get_ticks()
     now_time = get_time() 
 
-    # Добавление противников
+    # Добавление противников и spawns
     if now - enemy_respawn_time >= appearance_delay and total_enemy_count > 0 and current_enemy_count < 3:
         enemy_respawn_time = now
-        create_enemy()
+        create_enemy(spawn_centerxs[10 - total_enemy_count])
         total_enemy_count -= 1
         current_enemy_count += 1
+        if total_enemy_count > 7:
+            spawn = Spawn(spawn_centerxs[10 - total_enemy_count])
+            all_sprites.add(spawn)
+            spawns.add(spawn)
 
     # Проверка, не столкнулась ли пуля игрока со стеной
     hits = pygame.sprite.groupcollide(tiles, player_bullets, False, True)
@@ -553,6 +596,10 @@ while running:
     for hit in hits:
         current_enemy_count -= 1
         enemy_respawn_time = pygame.time.get_ticks()
+        if total_enemy_count > 0:
+            spawn = Spawn(spawn_centerxs[10 - total_enemy_count])
+            all_sprites.add(spawn)
+            spawns.add(spawn)
         score += 100
         explosion = Explosion(hit.rect.center)
         all_sprites.add(explosion)
@@ -601,6 +648,12 @@ while running:
     # hits = pygame.sprite.groupcollide(enemies, enemies, False, False)
     # for hit in hits:
     #     hit.stop()
+
+    # Проверка столкновений противников и spawns
+    hits = pygame.sprite.groupcollide(enemies, spawns, False, True)
+    # for hit in hits:
+    #     hit.remove(new_enemies)
+    #     hit.add(enemies)
 
     # Визуализация (сборка)
     screen.fill(BLACK)
