@@ -1,4 +1,4 @@
-# Добавлены классы игрока, противника и пули
+# Добавлено движение игрока по уровню
 import pygame
 import random
 import os
@@ -37,23 +37,30 @@ class Player(pygame.sprite.Sprite):
         self.speedy = 0
         self.shoot_delay = 400
         self.last_shot = pygame.time.get_ticks()
+        self.direction = "up"
     
     def update(self):
         self.speedx = 0
         self.speedy = 0
         keystate = pygame.key.get_pressed()
-        if keystate[pygame.K_LEFT] == True:
-            self.speedx = -5
-        if keystate[pygame.K_RIGHT] == True:
-            self.speedx = 5
+        # Проверка, какая клавиша нажата. Приоритет UP -> RIGHT -> DOWN -> LEFT
         if keystate[pygame.K_UP] == True:
-            self.speedy = -5
-        if keystate[pygame.K_DOWN] == True:
-            self.speedy = 5
+            self.speedy = -3
+            self.direction = "up"
+        elif keystate[pygame.K_RIGHT] == True:
+            self.speedx = 3
+            self.direction = "right"
+        elif keystate[pygame.K_DOWN] == True:
+            self.speedy = 3
+            self.direction = "down"
+        elif keystate[pygame.K_LEFT] == True:
+            self.speedx = -3
+            self.direction = "left"
         if keystate[pygame.K_SPACE] == True:
             self.shoot()
         self.rect.x += self.speedx
         self.rect.y += self.speedy 
+        # Проверка на выход за пределы экрана
         if self.rect.right > WIDTH:
             self.rect.right = WIDTH
         if self.rect.left < 0:
@@ -67,10 +74,32 @@ class Player(pygame.sprite.Sprite):
         now = pygame.time.get_ticks()
         if now - self.last_shot > self.shoot_delay:
             self.last_shot = pygame.time.get_ticks()
-            bullet = Bullet(self.rect.centerx, self.rect.top)
+            if self.direction == "up":
+                x = self.rect.centerx
+                y = self.rect.top
+            if self.direction == "right":
+                x = self.rect.right
+                y = self.rect.centery
+            if self.direction == "down":
+                x = self.rect.centerx
+                y = self.rect.bottom
+            if self.direction == "left":
+                x = self.rect.left
+                y = self.rect.centery
+            bullet = Bullet(x, y, self.direction)
             all_sprites.add(bullet)
             bullets.add(bullet)
 
+    def stop(self):
+        if self.direction == "up":
+            self.rect.y -= self.speedy
+        if self.direction == "right":
+            self.rect.x -= self.speedx
+        if self.direction == "down":
+            self.rect.y -= self.speedy
+        if self.direction == "left":
+            self.rect.x -= self.speedx
+        
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
@@ -89,16 +118,26 @@ class Enemy(pygame.sprite.Sprite):
 
 
 class Bullet(pygame.sprite.Sprite): # Разделить класс на пули игрока и пули противников
-    def __init__(self, x, y):             # чтобы не было дружественного огня
+    def __init__(self, x, y, direction):             # чтобы не было дружественного огня
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((10, 20))
         self.image.fill(YELLOW)
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        self.speedx = 15
         self.speedy = -15
+        self.direction = direction
     
     def update(self):
-        self.rect.y += self.speedy
+        # Проверка направления движения пули
+        if self.direction == "up":
+            self.rect.y += self.speedy
+        if self.direction == "right":
+            self.rect.x += self.speedx
+        if self.direction == "down":
+            self.rect.y -= self.speedy
+        if self.direction == "left":
+            self.rect.x -= self.speedx
 
         # Убить, если заходит за верхнюю часть экрана
         if self.rect.bottom < 0:
@@ -116,7 +155,19 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-    
+
+    def update(self):
+        pass
+
+
+class Tile(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((60, 60))
+        self.image.fill(WHITE)
+        self.rect = self.image.get_rect()
+        self.rect.center = (100 + x, HEIGHT / 2 + y)
+
     def update(self):
         pass
 
@@ -124,11 +175,25 @@ class Powerup(pygame.sprite.Sprite):
 all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
+tiles = pygame.sprite.Group()
 player = Player()
 all_sprites.add(player)
 enemy = Enemy()
 all_sprites.add(enemy)
 enemies.add(enemy)
+
+# Создание стен
+for i in range(5):
+    x = i * 60
+    tile = Tile(x, 0)
+    all_sprites.add(tile)
+    tiles.add(tile)
+
+for i in range(5):
+    x = i * 60
+    tile = Tile(x, 120)
+    all_sprites.add(tile)
+    tiles.add(tile)
 
 
 # Цикл игры
@@ -155,6 +220,11 @@ while running:
         enemy = Enemy()
         all_sprites.add(enemy)
         enemies.add(enemy)
+
+    # Проверка, не столкнулся ли игрок со стеной
+    if pygame.sprite.spritecollide(player, tiles, False):
+        
+        player.stop()
 
 
     # Визуализация (сборка)
