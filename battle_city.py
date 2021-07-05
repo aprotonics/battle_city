@@ -1,4 +1,4 @@
-# Добавлен экран конца игры
+# fix bugs
 import pygame
 import random
 import os
@@ -217,6 +217,7 @@ class Player(pygame.sprite.Sprite):
             self.direction = "up"
             shield = Shield(self.rect.center)
             all_sprites.add(shield)
+            shields.add(shield)
 
         if not self.hidden:
             self.move()
@@ -492,7 +493,7 @@ class Shield(pygame.sprite.Sprite):
         self.last_update = pygame.time.get_ticks()
         self.frame_rate = 50
         self.spawn_time = pygame.time.get_ticks()
-        self.existance_time = 4100
+        self.existance_time = 4000
 
     def update(self):
         now = pygame.time.get_ticks()
@@ -504,9 +505,7 @@ class Shield(pygame.sprite.Sprite):
             self.image = shield_images[self.frame]
             self.image.set_colorkey(BLACK)
             self.rect = self.image.get_rect()
-            self.rect.center = player.rect.center
-        else:
-            self.rect.center = player.rect.center
+        self.rect.center = player.rect.center
 
 
 # Загрузка изображений
@@ -559,7 +558,7 @@ shield_images = []
 for i in range(1, 3):
     filename = f"shield_0{i}.png"
     img = pygame.image.load(os.path.join(img_dir, filename)).convert()
-    img = pygame.transform.scale(img, (55, 55))
+    img = pygame.transform.scale(img, (60, 60))
     shield_images.append(img)
 
 
@@ -573,7 +572,7 @@ game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
 
 
 appearance_delay = 2000
-player_speed = 3
+player_speed = 4
 enemy_speed = 4
 # Цикл игры
 before_start = True
@@ -594,22 +593,24 @@ while running:
         powerups = pygame.sprite.Group()
         tiles = pygame.sprite.Group()
         spawns = pygame.sprite.Group()
+        shields = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
         shield = Shield(player.rect.center)
         all_sprites.add(shield)
+        shields.add(shield)
         
         score = 0
         total_enemy_count = 10
         current_enemy_count = 0
 
-        # Создание стен
-        for i in range(5):
-            for j in range(0, 241, 120):
-                x = i * 120
-                tile = Tile(x, j)
-                all_sprites.add(tile)
-                tiles.add(tile)
+        # # Создание стен
+        # for i in range(5):
+        #     for j in range(0, 241, 120):
+        #         x = i * 120
+        #         tile = Tile(x, j)
+        #         all_sprites.add(tile)
+        #         tiles.add(tile)
         
         # Создание spawn
         spawn_centerxs = ["" for i in range(10)]
@@ -667,7 +668,7 @@ while running:
     hits = pygame.sprite.groupcollide(tiles, enemy_bullets, False, True)
 
     # Проверка, не ударила ли пуля щит
-    if shield.alive():
+    for shield in shields:
         hits = pygame.sprite.spritecollide(shield, enemy_bullets, True)
 
     # Проверка, не ударила ли пуля игрока
@@ -748,17 +749,17 @@ while running:
 
     
     # Проверка, не столкнулись ли противники друг с другом
-    for tank in enemies:
-        tank.remove(enemies)        
-        hits = pygame.sprite.spritecollide(tank, enemies, False)
+    for enemy in enemies:
+        enemy.remove(enemies)        
+        hits = pygame.sprite.spritecollide(enemy, enemies, False)
         for hit in hits:
-            tank.stop()
+            enemy.stop()
             hit.stop()
-            tank.last_rotate = pygame.time.get_ticks()
+            enemy.last_rotate = pygame.time.get_ticks()
             hit.last_rotate = pygame.time.get_ticks()
-            tank.reverse()            
+            enemy.reverse()            
             hit.reverse()
-        tank.add(enemies)
+        enemy.add(enemies)
 
     # Проверка столкновений противников и spawns
     hits = pygame.sprite.groupcollide(new_enemies, spawns, False, True)
