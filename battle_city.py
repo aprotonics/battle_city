@@ -1,4 +1,4 @@
-# Добавлен щит игрока 
+# Добавлена обработка столкновений противника друг с другом
 import pygame
 import random
 import os
@@ -136,19 +136,19 @@ class Player(pygame.sprite.Sprite):
         if keystate[pygame.K_UP] == True:
             self.direction = "up"
             self.rotate(self.direction)
-            self.speedy = -2  
+            self.speedy = -player_speed  
         elif keystate[pygame.K_RIGHT] == True:
             self.direction = "right"
             self.rotate(self.direction)  
-            self.speedx = 2
+            self.speedx = player_speed
         elif keystate[pygame.K_DOWN] == True:
             self.direction = "down"
             self.rotate(self.direction) 
-            self.speedy = 2  
+            self.speedy = player_speed  
         elif keystate[pygame.K_LEFT] == True:
             self.direction = "left"
             self.rotate(self.direction) 
-            self.speedx = -2  
+            self.speedx = -player_speed  
         self.rect.x += self.speedx
         self.rect.y += self.speedy 
         if keystate[pygame.K_SPACE] == True:
@@ -192,27 +192,28 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         # Показать, если скрыто
-        if self.hidden and pygame.time.get_ticks() - self.hide_timer > 2100:
+        if self.hidden and pygame.time.get_ticks() - self.hide_timer > 2000:
             self.hidden = False
+            self.image = player_img
+            self.image.set_colorkey(BLACK)
+            self.rect = self.image.get_rect()
             self.rect.centerx = WIDTH / 2
             self.rect.bottom = HEIGHT
             self.direction = "up"
-            self.rotate(self.direction)
             shield = Shield(self.rect.center)
             all_sprites.add(shield)
 
         if not self.hidden:
             self.move()
-        
-        # Проверка на выход за пределы экрана
-        if self.rect.right > WIDTH:
-            self.stop()
-        if self.rect.left < 0:
-            self.stop()
-        if self.rect.bottom > HEIGHT:
-            self.stop()
-        if self.rect.top < 0:
-            self.stop()
+            # Проверка на выход за пределы экрана
+            if self.rect.right > WIDTH:
+                self.stop()
+            if self.rect.left < 0:
+                self.stop()
+            if self.rect.bottom > HEIGHT:
+                self.stop()
+            if self.rect.top < 0:
+                self.stop()
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -226,46 +227,60 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.y = 0
         self.direction = "down"
         self.moving_time = 0
-        self.moving_time = 3000
-        self.last_move = pygame.time.get_ticks()
+        self.moving_time = 3000 # Частота смены направления движения
+        self.last_rotate = pygame.time.get_ticks()
         self.speedx = 0
-        self.speedy = 2
+        self.speedy = enemy_speed
         self.shoot_delay = 500
         self.last_shot = pygame.time.get_ticks()
 
-    def rotate(self, direction):
+    def rotate(self):
+        self.direction = random.choice(["up", "right", "down", "left"])
         angle = 0
-        if direction == "up":
+        if self.direction == "up":
             angle = 180
-        elif direction == "right":
+            self.speedx = 0
+            self.speedy = -enemy_speed
+        elif self.direction == "right":
             angle = 90
-        elif direction == "down":
+            self.speedx = enemy_speed
+            self.speedy = 0
+        elif self.direction == "down":
             angle = 0
-        elif direction == "left":
+            self.speedx = 0
+            self.speedy = enemy_speed
+        elif self.direction == "left":
             angle = -90
+            self.speedx = -enemy_speed
+            self.speedy = 0
         new_image = pygame.transform.rotate(self.rand_image, angle)
         old_center = self.rect.center
         self.image = new_image
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
-        self.rect.center = old_center
+        self.rect.center = old_center    
     
-    def move(self):
-        now = pygame.time.get_ticks()
-        if now - self.last_move > self.moving_time:
-            self.last_move = pygame.time.get_ticks()
-            self.speedx = 0
-            self.speedy = 0
-            self.direction = random.choice(["up", "right", "down", "left"])
-            self.rotate(self.direction) 
-            if self.direction == "up":
-                self.speedy = -2
-            if self.direction == "right":
-                self.speedx = 2
-            if self.direction == "down":
-                self.speedy = 2
-            if self.direction == "left":
-                self.speedx = -2
+    def reverse(self):
+        if self.direction == "up":
+            self.direction = "down"
+            self.speedy = enemy_speed
+        elif self.direction == "right":
+            self.direction = "left"
+            self.speedx = -enemy_speed
+        elif self.direction == "down":
+            self.direction = "up"
+            self.speedy = -enemy_speed
+        elif self.direction == "left":
+            self.direction = "right"
+            self.speedx = enemy_speed
+        new_image = pygame.transform.rotate(self.image, 180)
+        old_center = self.rect.center
+        self.image = new_image
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.center = old_center
+
+    def move(self):  
         self.rect.x += self.speedx
         self.rect.y += self.speedy
 
@@ -278,7 +293,8 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.y -= self.speedy
         if self.direction == "left":
             self.rect.x -= self.speedx
-        self.last_move = 0
+        self.speedx = 0
+        self.speedy = 0
         
     def shoot(self):
         now = pygame.time.get_ticks()
@@ -302,16 +318,19 @@ class Enemy(pygame.sprite.Sprite):
 
     def update(self):
         self.move()
-        self.shoot()
+        
+        now = pygame.time.get_ticks()
+        if now - self.last_rotate > self.moving_time:
+            self.last_rotate = pygame.time.get_ticks()
+            self.stop()
+            self.rotate() 
+
         # Проверка на выход за пределы экрана
-        if self.rect.right > WIDTH:
+        if self.rect.right > WIDTH or self.rect.left < 0 or self.rect.bottom > HEIGHT or self.rect.top < 0:
             self.stop()
-        if self.rect.left < 0:
-            self.stop()
-        if self.rect.bottom > HEIGHT:
-            self.stop()
-        if self.rect.top < 0:
-            self.stop()
+            self.rotate()
+        
+        self.shoot()
         
 
 class Bullet(pygame.sprite.Sprite):
@@ -539,9 +558,11 @@ game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
 
 
 score = 0
-appearance_delay = 2100
+appearance_delay = 2000
 total_enemy_count = 10
 current_enemy_count = 0
+player_speed = 3
+enemy_speed = 4
 # Цикл игры
 game_over = True
 running = True
@@ -668,6 +689,8 @@ while running:
     hits = pygame.sprite.groupcollide(enemies, tiles, False, False)
     for hit in hits:
         hit.stop()
+        hit.last_rotate = pygame.time.get_ticks()
+        hit.rotate()
     
     # Проверка столкновений игрока и улучшений
     hits = pygame.sprite.spritecollide(player, powerups, True)
@@ -696,9 +719,17 @@ while running:
             hit.stop()
     
     # Проверка, не столкнулись ли противники друг с другом
-    # hits = pygame.sprite.groupcollide(enemies, enemies, False, False)
-    # for hit in hits:
-    #     hit.stop()
+    for tank in enemies:
+        tank.remove(enemies)        
+        hits = pygame.sprite.spritecollide(tank, enemies, False)
+        for hit in hits:
+            tank.stop()
+            hit.stop()
+            tank.last_rotate = pygame.time.get_ticks()
+            hit.last_rotate = pygame.time.get_ticks()
+            tank.reverse()            
+            hit.reverse()
+        tank.add(enemies)
 
     # Проверка столкновений противников и spawns
     hits = pygame.sprite.groupcollide(new_enemies, spawns, False, True)
