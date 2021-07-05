@@ -1,4 +1,4 @@
-# Добавлена обработка столкновений противника друг с другом
+# Добавлена обработка столкновений игрока и противника
 import pygame
 import random
 import os
@@ -648,7 +648,7 @@ while running:
     if not shield.alive():
         hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
         for hit in hits:
-            player.life -= 25
+            player.life -= 50
             if player.life > 0:
                 hit_sound.play()
             else:
@@ -712,11 +712,13 @@ while running:
             pass
 
     # Проверка, не столкнулись ли противник и игрок
-    if now - start_time >= appearance_delay:
-        hits = pygame.sprite.spritecollide(player, enemies, False)
-        for hit in hits:
-            player.stop()
-            hit.stop()
+    hits = pygame.sprite.spritecollide(player, enemies, False)
+    for hit in hits:
+        player.stop()
+        hit.stop()
+        hit.last_rotate = pygame.time.get_ticks()
+        hit.reverse()
+
     
     # Проверка, не столкнулись ли противники друг с другом
     for tank in enemies:
