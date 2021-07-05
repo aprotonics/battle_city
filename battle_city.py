@@ -1,4 +1,4 @@
-# Добавлен класс Spawn
+# Исправлены баги
 import pygame
 import random
 import os
@@ -48,7 +48,7 @@ def draw_lives(surf, x, y, lives, img):
 def create_enemy(centerx):
     enemy = Enemy(centerx)
     all_sprites.add(enemy)
-    enemies.add(enemy)
+    new_enemies.add(enemy)
 
 def show_go_screen():
     screen.blit(background, background_rect)
@@ -534,8 +534,14 @@ while running:
                 tiles.add(tile)
         
         # Создание spawn
-        spawn_centerxs = [random.choice([25, WIDTH / 2, WIDTH - 25]) for i in range(10)]
-        spawn = Spawn(spawn_centerxs[0])
+        spawn_centerxs = ["" for i in range(10)]
+        coordinates_lst = [25, WIDTH / 2, WIDTH - 25]
+        spawn_centerxs[0] = random.choice(coordinates_lst) # Создание списка координат появления
+        for i in range(1, 10):
+            lst = coordinates_lst.copy()
+            lst.remove(spawn_centerxs[i - 1])
+            spawn_centerxs[i] = random.choice(lst)
+        spawn = Spawn(spawn_centerxs[0]) # Создание первого spawn
         all_sprites.add(spawn)
         spawns.add(spawn)
     
@@ -650,10 +656,10 @@ while running:
     #     hit.stop()
 
     # Проверка столкновений противников и spawns
-    hits = pygame.sprite.groupcollide(enemies, spawns, False, True)
-    # for hit in hits:
-    #     hit.remove(new_enemies)
-    #     hit.add(enemies)
+    hits = pygame.sprite.groupcollide(new_enemies, spawns, False, True)
+    for hit in hits:
+        hit.remove(new_enemies)
+        hit.add(enemies)
 
     # Визуализация (сборка)
     screen.fill(BLACK)
