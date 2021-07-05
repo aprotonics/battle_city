@@ -1,4 +1,4 @@
-# fix bugs
+# add more powerups
 import pygame
 import random
 import os
@@ -199,7 +199,11 @@ class Player(pygame.sprite.Sprite):
             all_sprites.add(player_bullet)
             player_bullets.add(player_bullet)
             shoot_sound.play()
-
+    
+    def upgrade_gun(self):
+        self.gun_start_time = pygame.time.get_ticks()
+        self.shoot_delay = 200 
+        
     def hide(self):
         self.hidden = True
         self.hide_timer = pygame.time.get_ticks()
@@ -221,6 +225,10 @@ class Player(pygame.sprite.Sprite):
 
         if not self.hidden:
             self.move()
+            # Проверка таймера на улучшение стрельбы
+            if hasattr(self, "gun_start_time"):
+                if pygame.time.get_ticks() - self.gun_start_time > 10000:
+                    self.shoot_delay = 400
             # Проверка на выход за пределы экрана
             if self.rect.right > WIDTH:
                 self.stop()
@@ -435,7 +443,7 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.type = "life"
+        self.type = random.choice(["gun", "shield", "life"])
         self.image = powerup_images[self.type]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -725,9 +733,11 @@ while running:
     for hit in hits:
         powerup_sound.play()
         if hit.type == "gun":
-            pass
+            player.upgrade_gun()
         if hit.type == "shield":
-            pass
+            shield = Shield(player.rect.center)
+            all_sprites.add(shield)
+            shields.add(shield)
         if hit.type == "base":
             pass
         if hit.type == "levelup":
