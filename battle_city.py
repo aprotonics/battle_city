@@ -122,7 +122,7 @@ class Player(pygame.sprite.Sprite):
         self.shoot_delay = 400
         self.last_shot = pygame.time.get_ticks()
         self.life = 100
-        self.lives = 1
+        self.lives = 3
         self.hidden = False
         self.hide_timer = pygame.time.get_ticks()
     
@@ -674,7 +674,7 @@ while running:
     if not shield.alive():
         hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
         for hit in hits:
-            player.life -= 50
+            player.life -= 34
             if player.life > 0:
                 hit_sound.play()
             else:
