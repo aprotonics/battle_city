@@ -1,4 +1,4 @@
-# Исправлены баги
+# Добавлен щит игрока 
 import pygame
 import random
 import os
@@ -106,7 +106,7 @@ class Player(pygame.sprite.Sprite):
         self.speedy = 0
         self.shoot_delay = 400
         self.last_shot = pygame.time.get_ticks()
-        self.shield = 100
+        self.life = 100
         self.lives = 3
         self.hidden = False
         self.hide_timer = pygame.time.get_ticks()
@@ -195,7 +195,11 @@ class Player(pygame.sprite.Sprite):
         if self.hidden and pygame.time.get_ticks() - self.hide_timer > 2100:
             self.hidden = False
             self.rect.centerx = WIDTH / 2
-            self.rect.bottom = HEIGHT 
+            self.rect.bottom = HEIGHT
+            self.direction = "up"
+            self.rotate(self.direction)
+            shield = Shield(self.rect.center)
+            all_sprites.add(shield)
 
         if not self.hidden:
             self.move()
@@ -443,6 +447,34 @@ class Spawn(pygame.sprite.Sprite):
             self.rect.y = 0
 
 
+class Shield(pygame.sprite.Sprite):
+    def __init__(self, center):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = shield_images[0]
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.center = center 
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.frame_rate = 50
+        self.spawn_time = pygame.time.get_ticks()
+        self.existance_time = 4100
+
+    def update(self):
+        now = pygame.time.get_ticks()
+        if now - self.spawn_time > self.existance_time:
+            self.kill()
+        if now - self.last_update > self.frame_rate:
+            self.last_update = now
+            self.frame = int(not bool(self.frame))
+            self.image = shield_images[self.frame]
+            self.image.set_colorkey(BLACK)
+            self.rect = self.image.get_rect()
+            self.rect.center = player.rect.center
+        else:
+            self.rect.center = player.rect.center
+
+
 # Загрузка изображений
 background = pygame.image.load(os.path.join(img_dir, "background.png")).convert()
 background_rect = background.get_rect()
@@ -489,6 +521,13 @@ for i in range(1, 3):
     img = pygame.transform.scale(img, (50, 50))
     spawn_images.append(img)
 
+shield_images = []
+for i in range(1, 3):
+    filename = f"shield_0{i}.png"
+    img = pygame.image.load(os.path.join(img_dir, filename)).convert()
+    img = pygame.transform.scale(img, (55, 55))
+    shield_images.append(img)
+
 
 # Загрузка звуков
 game_start_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gamestart.ogg"))
@@ -523,7 +562,8 @@ while running:
         spawns = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
-        player.hide()
+        shield = Shield(player.rect.center)
+        all_sprites.add(shield)
         
         # Создание стен
         for i in range(5):
@@ -579,19 +619,24 @@ while running:
     # Проверка, не столкнулась ли пуля противника со стеной
     hits = pygame.sprite.groupcollide(tiles, enemy_bullets, False, True)
 
+    # Проверка, не ударила ли пуля щит
+    if shield.alive():
+        hits = pygame.sprite.spritecollide(shield, enemy_bullets, True)
+
     # Проверка, не ударила ли пуля игрока
-    hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
-    for hit in hits:
-        player.shield -= 25
-        if player.shield > 0:
-            hit_sound.play()
-        else:
-            explosion = Explosion(hit.rect.center)
-            all_sprites.add(explosion)
-            player.hide()
-            player.lives -= 1
-            player.shield = 100
-            explosion_sound.play()
+    if not shield.alive():
+        hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
+        for hit in hits:
+            player.life -= 25
+            if player.life > 0:
+                hit_sound.play()
+            else:
+                explosion = Explosion(hit.rect.center)
+                all_sprites.add(explosion)
+                player.hide()
+                player.lives -= 1
+                player.life = 100
+                explosion_sound.play()
     # Если игрок умер, игра окончена
     if player.lives == 0 and not explosion.alive():
         game_over_sound.play()
@@ -666,7 +711,7 @@ while running:
     all_sprites.draw(screen)
     draw_text(screen, WIDTH / 3 + 25, 5, str(now_time), 24)
     draw_text(screen, WIDTH / 3 * 2 - 25, 5, str(score), 24)
-    draw_shield_bar(screen, 5, 10, player.shield)
+    draw_shield_bar(screen, 5, 10, player.life)
     draw_lives(screen, WIDTH - 100, 5, player.lives, player_mini_img)
 
     # после отрисовки всего, переворачиваем экран
