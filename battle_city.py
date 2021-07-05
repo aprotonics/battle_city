@@ -1,4 +1,4 @@
-# Добавлена обработка столкновений игрока и противника
+# Добавлен экран конца игры
 import pygame
 import random
 import os
@@ -7,17 +7,17 @@ import math
 
 def get_time():
     now = pygame.time.get_ticks()
-    seconds = math.trunc((now - start_time) / 1000)
-    minutes = 0
-    while seconds >= 60:
-        minutes += 1
-        seconds -= 60
-    if seconds < 10:
-        seconds = "0" + str(seconds)
-    if minutes < 10:
-        minutes = "0" + str(minutes)
-    time = str(minutes) + ":" + str(seconds)
-    return time
+    current_seconds = math.trunc((now - start_time) / 1000)
+    current_minutes = 0
+    while current_seconds >= 60:
+        current_minutes += 1
+        current_seconds -= 60
+    if current_seconds < 10:
+        current_seconds = "0" + str(current_seconds)
+    if current_minutes < 10:
+        minutes = "0" + str(current_minutes)
+    current_time = str(current_minutes) + ":" + str(current_seconds)
+    return current_time
 
 def draw_text(surf, x, y, text, size):
     font = pygame.font.Font(font_name, size)
@@ -50,11 +50,11 @@ def create_enemy(centerx):
     all_sprites.add(enemy)
     new_enemies.add(enemy)
 
-def show_go_screen():
-    screen.blit(background, background_rect)
-    draw_text(screen, WIDTH / 2, HEIGHT / 4, "Hello", 64)
-    draw_text(screen, WIDTH / 2, HEIGHT / 2, "Arrow keys move, Space to fire", 22)
-    draw_text(screen, WIDTH / 2, HEIGHT * 3 / 4, "Press a key to begin", 18)
+def show_start_screen():
+    screen.fill(BLACK)
+    draw_text(screen, WIDTH / 2, HEIGHT / 4, "Battle City", 64)
+    draw_text(screen, WIDTH / 2, HEIGHT / 2, "Arrow keys to move, Space to fire", 22)
+    draw_text(screen, WIDTH / 2, HEIGHT * 3 / 4, "Press ENTER to begin", 18)
     pygame.display.flip()
     waiting = True
     while waiting:
@@ -62,10 +62,24 @@ def show_go_screen():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-            if event.type == pygame.KEYUP:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN: 
+                    waiting = False
+
+def show_game_over_screen():
+    screen.fill(BLACK)
+    draw_text(screen, WIDTH / 2, HEIGHT / 2 - 70, "GAME OVER", 70)
+    draw_text(screen, WIDTH / 2, HEIGHT * 3 / 4, "Press any key to continue", 18)
+    pygame.display.flip()
+    waiting = True
+    while waiting:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
                 waiting = False
 
-            
 
 WIDTH = 600 # ширина игрового окна
 HEIGHT = 600 # высота игрового окна
@@ -86,7 +100,8 @@ pygame.mixer.init() # для звука
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Battle city")
 clock = pygame.time.Clock()
-font_name = pygame.font.match_font('arial')
+font_name = pygame.font.match_font("Arial")
+
 
 # настройка папки ассетов
 img_dir = os.path.join(os.path.dirname(__file__), "img")
@@ -107,7 +122,7 @@ class Player(pygame.sprite.Sprite):
         self.shoot_delay = 400
         self.last_shot = pygame.time.get_ticks()
         self.life = 100
-        self.lives = 3
+        self.lives = 1
         self.hidden = False
         self.hide_timer = pygame.time.get_ticks()
     
@@ -557,19 +572,17 @@ explosion_sound = pygame.mixer.Sound(os.path.join(snd_dir, "explosion.ogg"))
 game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
 
 
-score = 0
 appearance_delay = 2000
-total_enemy_count = 10
-current_enemy_count = 0
 player_speed = 3
 enemy_speed = 4
 # Цикл игры
-game_over = True
+before_start = True
 running = True
+game_over = False
 while running:
-    if game_over:
-        show_go_screen()
-        game_over = False
+    if before_start:  
+        show_start_screen()
+        before_start = False
         start_time = pygame.time.get_ticks()
         enemy_respawn_time = start_time
         game_start_sound.play()
@@ -586,6 +599,10 @@ while running:
         shield = Shield(player.rect.center)
         all_sprites.add(shield)
         
+        score = 0
+        total_enemy_count = 10
+        current_enemy_count = 0
+
         # Создание стен
         for i in range(5):
             for j in range(0, 241, 120):
@@ -605,10 +622,18 @@ while running:
         spawn = Spawn(spawn_centerxs[0]) # Создание первого spawn
         all_sprites.add(spawn)
         spawns.add(spawn)
-    
+        
+    if game_over:
+        show_game_over_screen()
+        game_over = False
+        before_start = True
+     
     # Держим цикл на правильной скорости
     clock.tick(FPS)
-    # Ввод процесса (события)
+
+
+
+    ##### Ввод процесса (события)
     for event in pygame.event.get():
         # проверить закрытие окна
         if event.type == pygame.QUIT:
@@ -618,7 +643,8 @@ while running:
                 running = False
     
 
-    # Обновление
+
+    ##### Обновление
     all_sprites.update()
     now = pygame.time.get_ticks()
     now_time = get_time() 
@@ -659,9 +685,10 @@ while running:
                 player.life = 100
                 explosion_sound.play()
     # Если игрок умер, игра окончена
-    if player.lives == 0 and not explosion.alive():
+    if player.lives == 0 and not explosion.alive() and not before_start:
         game_over_sound.play()
-        game_over = True  
+        game_over = True
+        pygame.time.delay(2000)
 
     # Проверка, не ударила ли пуля противника
     hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True)
@@ -739,7 +766,9 @@ while running:
         hit.remove(new_enemies)
         hit.add(enemies)
 
-    # Визуализация (сборка)
+
+
+    ##### Визуализация (сборка)
     screen.fill(BLACK)
     all_sprites.draw(screen)
     draw_text(screen, WIDTH / 3 + 25, 5, str(now_time), 24)
