@@ -612,13 +612,13 @@ while running:
         total_enemy_count = 10
         current_enemy_count = 0
 
-        # # Создание стен
-        # for i in range(5):
-        #     for j in range(0, 241, 120):
-        #         x = i * 120
-        #         tile = Tile(x, j)
-        #         all_sprites.add(tile)
-        #         tiles.add(tile)
+        # Создание стен
+        for i in range(5):
+            for j in range(0, 241, 120):
+                x = i * 120
+                tile = Tile(x, j)
+                all_sprites.add(tile)
+                tiles.add(tile)
         
         # Создание spawn
         spawn_centerxs = ["" for i in range(10)]
