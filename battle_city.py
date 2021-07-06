@@ -13,11 +13,12 @@ def get_time():
         current_minutes += 1
         current_seconds -= 60
     if current_seconds < 10:
-        current_seconds = "0" + str(current_seconds)
+        current_seconds = f"0{str(current_seconds)}"
     if current_minutes < 10:
-        minutes = "0" + str(current_minutes)
-    current_time = str(current_minutes) + ":" + str(current_seconds)
+        minutes = f"0{str(current_minutes)}"
+    current_time = f"{str(current_minutes)}:{str(current_seconds)}"
     return current_time
+
 
 def draw_text(surf, x, y, text, size):
     font = pygame.font.Font(font_name, size)
@@ -25,6 +26,7 @@ def draw_text(surf, x, y, text, size):
     text_rect = text_surface.get_rect()
     text_rect.midtop = (x, y)
     surf.blit(text_surface, text_rect)
+
 
 def draw_shield_bar(surf, x, y, pct):
     if pct < 0:
@@ -37,6 +39,7 @@ def draw_shield_bar(surf, x, y, pct):
     pygame.draw.rect(surf, GREEN, fill_rect)
     pygame.draw.rect(surf, WHITE, outline_rect, 2)
 
+
 def draw_lives(surf, x, y, lives, img):
     for i in range(lives):
         img.set_colorkey(BLACK)
@@ -45,15 +48,6 @@ def draw_lives(surf, x, y, lives, img):
         img_rect.y = y
         surf.blit(img, img_rect)
 
-def create_enemy(centerx):
-    enemy = Enemy(centerx)
-    all_sprites.add(enemy)
-    new_enemies.add(enemy)
-
-def create_tile(x, y):
-    tile = Tile(x, y)
-    all_sprites.add(tile)
-    tiles.add(tile)
 
 def show_start_screen():
     screen.fill(BLACK)
@@ -70,6 +64,7 @@ def show_start_screen():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN: 
                     waiting = False
+
 
 def show_game_over_screen():
     screen.fill(BLACK)
@@ -262,6 +257,9 @@ class Enemy(pygame.sprite.Sprite):
         self.speedy = enemy_speed
         self.shoot_delay = 500
         self.last_shot = pygame.time.get_ticks()
+
+        all_sprites.add(self)
+        new_enemies.add(self)
 
     def rotate(self):
         self.direction = random.choice(["up", "right", "down", "left"])
@@ -467,6 +465,9 @@ class Tile(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
+        all_sprites.add(self)
+        tiles.add(self)
+
     def update(self):
         pass
 
@@ -621,17 +622,17 @@ while running:
         # Создание стен
         # y = [60, 120, 180, 360, 480, 540]
         for j in [0, 60, 420, 480]:
-            create_tile(j, 60)
+            tile = Tile(j, 60)
         for j in [0, 60 * 8]:
-            create_tile(j, 120)
+            tile = Tile(j, 120)
         for j in [60 * 3, 60 * 4, 60 * 5]:
-            create_tile(j, 180)
+            tile = Tile(j, 180)
         for j in [60 * 2, 60 * 3, 60 * 4, 60 * 5, 60 * 6]:
-            create_tile(j, 360)
+            tile = Tile(j, 360)
         for j in [0, 60 * 9]:
-            create_tile(j, 480)
+            tile = Tile(j, 480)
         for j in [0, 60, 60 * 8, 60 * 9]:
-            create_tile(j, 540)
+            tile = Tile(j, 540)
         
         # Создание spawn
         spawn_centerxs = ["" for i in range(10)]
@@ -653,8 +654,6 @@ while running:
     # Держим цикл на правильной скорости
     clock.tick(FPS)
 
-
-
     ##### Ввод процесса (события)
     for event in pygame.event.get():
         # проверить закрытие окна
@@ -664,8 +663,6 @@ while running:
             if event.key == pygame.K_q or event.key == pygame.K_ESCAPE:
                 running = False
     
-
-
     ##### Обновление
     all_sprites.update()
     now = pygame.time.get_ticks()
@@ -674,7 +671,7 @@ while running:
     # Добавление противников и spawns
     if now - enemy_respawn_time >= appearance_delay and total_enemy_count > 0 and current_enemy_count < 3:
         enemy_respawn_time = now
-        create_enemy(spawn_centerxs[10 - total_enemy_count])
+        enemy = Enemy(spawn_centerxs[10 - total_enemy_count])
         total_enemy_count -= 1
         current_enemy_count += 1
         if total_enemy_count > 7:
@@ -769,8 +766,7 @@ while running:
         hit.stop()
         hit.last_rotate = pygame.time.get_ticks()
         hit.reverse()
-
-    
+ 
     # Проверка, не столкнулись ли противники друг с другом
     for enemy in enemies:
         enemy.remove(enemies)        
@@ -789,8 +785,6 @@ while running:
     for hit in hits:
         hit.remove(new_enemies)
         hit.add(enemies)
-
-
 
     ##### Визуализация (сборка)
     screen.fill(BLACK)
