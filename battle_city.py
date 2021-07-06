@@ -50,6 +50,11 @@ def create_enemy(centerx):
     all_sprites.add(enemy)
     new_enemies.add(enemy)
 
+def create_tile(x, y):
+    tile = Tile(x, y)
+    all_sprites.add(tile)
+    tiles.add(tile)
+
 def show_start_screen():
     screen.fill(BLACK)
     draw_text(screen, WIDTH / 2, HEIGHT / 4, "Battle City", 64)
@@ -459,7 +464,8 @@ class Tile(pygame.sprite.Sprite):
         self.image = pygame.Surface((60, 60))
         self.image.fill(WHITE)
         self.rect = self.image.get_rect()
-        self.rect.center = (30 + x, 150 + y)
+        self.rect.x = x
+        self.rect.y = y
 
     def update(self):
         pass
@@ -613,12 +619,19 @@ while running:
         current_enemy_count = 0
 
         # Создание стен
-        for i in range(5):
-            for j in range(0, 241, 120):
-                x = i * 120
-                tile = Tile(x, j)
-                all_sprites.add(tile)
-                tiles.add(tile)
+        # y = [60, 120, 180, 360, 480, 540]
+        for j in [0, 60, 420, 480]:
+            create_tile(j, 60)
+        for j in [0, 60 * 8]:
+            create_tile(j, 120)
+        for j in [60 * 3, 60 * 4, 60 * 5]:
+            create_tile(j, 180)
+        for j in [60 * 2, 60 * 3, 60 * 4, 60 * 5, 60 * 6]:
+            create_tile(j, 360)
+        for j in [0, 60 * 9]:
+            create_tile(j, 480)
+        for j in [0, 60, 60 * 8, 60 * 9]:
+            create_tile(j, 540)
         
         # Создание spawn
         spawn_centerxs = ["" for i in range(10)]
