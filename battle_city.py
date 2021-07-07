@@ -1,4 +1,4 @@
-# add more powerups
+# bug fix
 import pygame
 import random
 import os
@@ -166,7 +166,8 @@ class Player(pygame.sprite.Sprite):
             self.speedx = -player_speed  
         self.rect.x += self.speedx
         self.rect.y += self.speedy 
-        if keystate[pygame.K_SPACE] == True:
+        if (keystate[pygame.K_SPACE] == True and
+        (current_enemy_count > 1 or total_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
             self.shoot()
     
     def stop(self):
@@ -199,7 +200,7 @@ class Player(pygame.sprite.Sprite):
             all_sprites.add(player_bullet)
             player_bullets.add(player_bullet)
             shoot_sound.play()
-    
+ 
     def upgrade_gun(self):
         self.gun_start_time = pygame.time.get_ticks()
         self.shoot_delay = 200 
@@ -427,6 +428,8 @@ class Explosion(pygame.sprite.Sprite):
         self.frame = 0
         self.last_update = pygame.time.get_ticks()
         self.frame_rate = 120
+
+        all_sprites.add(self)
     
     def update(self):
         now = pygame.time.get_ticks()
@@ -451,6 +454,9 @@ class Powerup(pygame.sprite.Sprite):
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center
+
+        all_sprites.add(self)
+        powerups.add(self)
 
     def update(self):
         pass
@@ -483,6 +489,9 @@ class Spawn(pygame.sprite.Sprite):
         self.frame = 0
         self.last_update = pygame.time.get_ticks()
         self.frame_rate = 50
+
+        all_sprites.add(self)
+        spawns.add(self)
 
     def update(self):
         now = pygame.time.get_ticks()
@@ -586,7 +595,7 @@ explosion_sound = pygame.mixer.Sound(os.path.join(snd_dir, "explosion.ogg"))
 game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
 
 
-appearance_delay = 2000
+appearance_delay = 1500
 player_speed = 4
 enemy_speed = 4
 # Цикл игры
@@ -599,6 +608,7 @@ while running:
         before_start = False
         start_time = pygame.time.get_ticks()
         enemy_respawn_time = start_time
+        last_hit_time = start_time
         game_start_sound.play()
         all_sprites = pygame.sprite.Group()
         enemies = pygame.sprite.Group()
@@ -617,6 +627,7 @@ while running:
         
         score = 0
         total_enemy_count = 10
+        first_enemies_number = 0
         current_enemy_count = 0
 
         # Создание стен
@@ -638,13 +649,11 @@ while running:
         spawn_centerxs = ["" for i in range(10)]
         coordinates_lst = [25, WIDTH / 2, WIDTH - 25]
         spawn_centerxs[0] = random.choice(coordinates_lst) # Создание списка координат появления
-        for i in range(1, 10):
+        for i in range(1, 10):                             # Создание списка координат появления
             lst = coordinates_lst.copy()
             lst.remove(spawn_centerxs[i - 1])
             spawn_centerxs[i] = random.choice(lst)
         spawn = Spawn(spawn_centerxs[0]) # Создание первого spawn
-        all_sprites.add(spawn)
-        spawns.add(spawn)
         
     if game_over:
         show_game_over_screen()
@@ -668,16 +677,24 @@ while running:
     now = pygame.time.get_ticks()
     now_time = get_time() 
 
-    # Добавление противников и spawns
-    if now - enemy_respawn_time >= appearance_delay and total_enemy_count > 0 and current_enemy_count < 3:
+    # Добавление первых противников и spawns
+    if first_enemies_number < 3 and now - enemy_respawn_time >= appearance_delay:
         enemy_respawn_time = now
-        enemy = Enemy(spawn_centerxs[10 - total_enemy_count])
-        total_enemy_count -= 1
+        enemy = Enemy(spawn_centerxs[first_enemies_number])
+        first_enemies_number += 1
         current_enemy_count += 1
-        if total_enemy_count > 7:
-            spawn = Spawn(spawn_centerxs[10 - total_enemy_count])
-            all_sprites.add(spawn)
-            spawns.add(spawn)
+        if first_enemies_number < 3:
+            spawn = Spawn(spawn_centerxs[first_enemies_number])
+
+    # Добавление остальных противников и spawns
+    if now - enemy_respawn_time >= appearance_delay and total_enemy_count >= 3 and current_enemy_count < 3:
+        if current_enemy_count == 2:
+            enemy_respawn_time = now
+            enemy = Enemy(spawn_centerxs[12 - total_enemy_count])
+        if current_enemy_count == 1:
+            enemy_respawn_time += hits_interval
+            enemy = Enemy(spawn_centerxs[11 - total_enemy_count])
+        current_enemy_count += 1
 
     # Проверка, не столкнулась ли пуля игрока со стеной
     hits = pygame.sprite.groupcollide(tiles, player_bullets, False, True)
@@ -712,20 +729,20 @@ while running:
     # Проверка, не ударила ли пуля противника
     hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True)
     for hit in hits:
+        hits_interval = now - last_hit_time
+        last_hit_time = now
         current_enemy_count -= 1
-        enemy_respawn_time = pygame.time.get_ticks()
-        if total_enemy_count > 0:
-            spawn = Spawn(spawn_centerxs[10 - total_enemy_count])
-            all_sprites.add(spawn)
-            spawns.add(spawn)
+        total_enemy_count -= 1
+        if current_enemy_count == 2:
+            enemy_respawn_time = pygame.time.get_ticks()
+        if total_enemy_count >= 3:
+            spawn = Spawn(spawn_centerxs[12 - total_enemy_count]) 
         score += 100
-        explosion = Explosion(hit.rect.center)
-        all_sprites.add(explosion)
+        explosion = Explosion(hit.rect.center)  
         explosion_sound.play()
-        if random.random() > 0.8:
+        if random.random() > 0.9:
             powerup = Powerup(hit.rect.center)
-            all_sprites.add(powerup)
-            powerups.add(powerup)
+            
     
     # Проверка, не столкнулся ли игрок со стеной
     if pygame.sprite.spritecollide(player, tiles, False):
@@ -745,6 +762,8 @@ while running:
         if hit.type == "gun":
             player.upgrade_gun()
         if hit.type == "shield":
+            if shield.alive():
+                shield.kill()
             shield = Shield(player.rect.center)
             all_sprites.add(shield)
             shields.add(shield)
