@@ -3,7 +3,6 @@ import pygame
 import random
 import os
 import math
-import csv
 
 
 def get_time():
