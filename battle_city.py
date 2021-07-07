@@ -1,4 +1,4 @@
-# add current score rendering
+# add player levels
 import pygame
 import random
 import os
@@ -109,9 +109,10 @@ snd_dir = os.path.join(os.path.dirname(__file__), "snd")
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, level, image):
         pygame.sprite.Sprite.__init__(self)
-        self.image = player_img
+        self.first_image = image
+        self.image = self.first_image
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = WIDTH / 2
@@ -123,6 +124,7 @@ class Player(pygame.sprite.Sprite):
         self.last_shot = pygame.time.get_ticks()
         self.life = 100
         self.lives = 3
+        self.level = level
         self.hidden = False
         self.hide_timer = pygame.time.get_ticks()
 
@@ -138,7 +140,7 @@ class Player(pygame.sprite.Sprite):
             angle = -180
         elif direction == "left":
             angle = 90
-        new_image = pygame.transform.rotate(player_img, angle)
+        new_image = pygame.transform.rotate(self.first_image, angle)
         old_center = self.rect.center
         self.image = new_image
         self.image.set_colorkey(BLACK)
@@ -212,14 +214,31 @@ class Player(pygame.sprite.Sprite):
         self.hide_timer = pygame.time.get_ticks()
         self.rect.center = (WIDTH / 2, HEIGHT + 200)
 
-    def upgrade(self):
-        pass
+    def upgrade(self, center):
+        self.level += 1
+        if self.level >= 2:
+            self.level = 2
+        self.first_image = player_images[self.level]
+        self.image = self.first_image
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.life = 100
+    
+    def downgrade(self, center):
+        self.level = 0
+        self.first_image = player_images[self.level]
+        self.image = self.first_image
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.life = 100
 
     def update(self):
         # Показать, если скрыто
         if self.hidden and pygame.time.get_ticks() - self.hide_timer > 2000:
             self.hidden = False
-            self.image = player_img
+            self.image = player_images[0]
             self.image.set_colorkey(BLACK)
             self.rect = self.image.get_rect()
             self.rect.centerx = WIDTH / 2
@@ -454,7 +473,7 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.type = random.choice(["gun", "shield", "life"])
+        self.type = random.choice(["levelup"]) # ["gun", "shield", "base", "levelup", "life", "time"]
         self.image = powerup_images[self.type]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -541,9 +560,13 @@ class Shield(pygame.sprite.Sprite):
 
 
 # Загрузка изображений
-player_img = pygame.image.load(os.path.join(img_dir, "player_01.png")).convert()
-player_img = pygame.transform.scale(player_img, (50, 50))
-player_mini_img = pygame.transform.scale(player_img, (25, 25))
+player_images = []
+for i in range(1, 4):
+    filename = f"player_01_0{i}.png"
+    img = pygame.image.load(os.path.join(img_dir, filename)).convert()
+    img = pygame.transform.scale(img, (50, 50))
+    player_images.append(img)
+player_mini_img = pygame.transform.scale(player_images[0], (25, 25))
 
 enemy_images = []
 for i in range(1, 3):
@@ -604,6 +627,8 @@ game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
 appearance_delay = 1500
 player_speed = 4
 enemy_speed = 4
+player_level = 0
+player_image = player_images[0]
 before_start = True
 level_won = False
 running = True
@@ -627,7 +652,7 @@ while running:
         tiles = pygame.sprite.Group()
         spawns = pygame.sprite.Group()
         shields = pygame.sprite.Group()
-        player = Player()
+        player = Player(player_level, player_image)
         shield = Shield(player.rect.center)
         
         current_score = ""
@@ -685,7 +710,9 @@ while running:
         tiles = pygame.sprite.Group()
         spawns = pygame.sprite.Group()
         shields = pygame.sprite.Group()
-        player = Player()
+        player = Player(player_level, player_image)
+        player.level = player_level
+        player.first_image = player_image
         shield = Shield(player.rect.center)
         
         current_score = ""
@@ -776,13 +803,12 @@ while running:
                 explosion = Explosion(hit.rect.center)
                 player.hide()
                 player.lives -= 1
-                player.life = 100
+                player.downgrade(player.rect.center)
                 explosion_sound.play()
     # Если игрок умер, игра окончена
     if player.lives == 0 and now - last_player_hit_time > 2000 and not before_start:
         game_over_sound.play()
         game_over = True
-
     
     # Проверка, не ударила ли пуля противника
     hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True)
@@ -790,8 +816,8 @@ while running:
         hits_interval = now - last_enemy_hit_time
         last_enemy_hit_time = now
         current_score = 100
-        current_score_centerx = hit.rect.centerx
-        current_score_top = hit.rect.top
+        current_score_centerx = hit.rect.centerx + 20
+        current_score_top = hit.rect.top + 20
         current_enemy_count -= 1
         total_enemy_count -= 1
         if current_enemy_count == 2:
@@ -806,6 +832,8 @@ while running:
             powerup = Powerup(hit.rect.center)     
     # Если противники закончились, игра окончена
     if total_enemy_count == 0 and now - last_enemy_hit_time > 2000:
+        player_level = player.level
+        player_image = player.first_image
         level_won = True
     
     # Проверка, не столкнулся ли игрок со стеной
@@ -836,7 +864,7 @@ while running:
         if hit.type == "base":
             pass
         if hit.type == "levelup":
-            player.upgrade()
+            player.upgrade(player.rect.center)
         if hit.type == "life":
             player.lives += 1
             if player.lives >= 5:
