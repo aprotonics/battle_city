@@ -1,8 +1,9 @@
-# bug fix
+# add new levels
 import pygame
 import random
 import os
 import math
+import csv
 
 
 def get_time():
@@ -595,11 +596,13 @@ explosion_sound = pygame.mixer.Sound(os.path.join(snd_dir, "explosion.ogg"))
 game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
 
 
+
+# Цикл игры
 appearance_delay = 1500
 player_speed = 4
 enemy_speed = 4
-# Цикл игры
 before_start = True
+level_won = False
 running = True
 game_over = False
 while running:
@@ -608,7 +611,8 @@ while running:
         before_start = False
         start_time = pygame.time.get_ticks()
         enemy_respawn_time = start_time
-        last_hit_time = start_time
+        last_enemy_hit_time = start_time
+        last_player_hit_time = start_time
         game_start_sound.play()
         all_sprites = pygame.sprite.Group()
         enemies = pygame.sprite.Group()
@@ -625,31 +629,26 @@ while running:
         all_sprites.add(shield)
         shields.add(shield)
         
+        level_number = 1
         score = 0
-        total_enemy_count = 10
+        total_enemy = 5
+        total_enemy_count = total_enemy
         first_enemies_number = 0
         current_enemy_count = 0
 
         # Создание стен
-        # y = [60, 120, 180, 360, 480, 540]
-        for j in [0, 60, 420, 480]:
-            tile = Tile(j, 60)
-        for j in [0, 60 * 8]:
-            tile = Tile(j, 120)
-        for j in [60 * 3, 60 * 4, 60 * 5]:
-            tile = Tile(j, 180)
-        for j in [60 * 2, 60 * 3, 60 * 4, 60 * 5, 60 * 6]:
-            tile = Tile(j, 360)
-        for j in [0, 60 * 9]:
-            tile = Tile(j, 480)
-        for j in [0, 60, 60 * 8, 60 * 9]:
-            tile = Tile(j, 540)
-        
+        with open(f"levels/{level_number}.txt", "rt") as f:
+            lines = f.readlines()
+        for i in range(10):
+            for j in range(10):
+                if lines[i][j] ==  "#":
+                    tile = Tile(j * 60, i * 60)
+
         # Создание spawn
-        spawn_centerxs = ["" for i in range(10)]
+        spawn_centerxs = ["" for i in range(total_enemy)]
         coordinates_lst = [25, WIDTH / 2, WIDTH - 25]
         spawn_centerxs[0] = random.choice(coordinates_lst) # Создание списка координат появления
-        for i in range(1, 10):                             # Создание списка координат появления
+        for i in range(1, total_enemy):              # Создание списка координат появления
             lst = coordinates_lst.copy()
             lst.remove(spawn_centerxs[i - 1])
             spawn_centerxs[i] = random.choice(lst)
@@ -659,7 +658,57 @@ while running:
         show_game_over_screen()
         game_over = False
         before_start = True
-     
+    
+    if level_won:
+        if level_number == 3:
+            level_number = 1
+        else:
+            level_number += 1
+        level_won = False
+
+        start_time = pygame.time.get_ticks()
+        enemy_respawn_time = start_time
+        last_enemy_hit_time = start_time
+        last_player_hit_time = start_time
+        game_start_sound.play()
+        all_sprites = pygame.sprite.Group()
+        enemies = pygame.sprite.Group()
+        new_enemies = pygame.sprite.Group()
+        player_bullets = pygame.sprite.Group()
+        enemy_bullets = pygame.sprite.Group()
+        powerups = pygame.sprite.Group()
+        tiles = pygame.sprite.Group()
+        spawns = pygame.sprite.Group()
+        shields = pygame.sprite.Group()
+        player = Player()
+        all_sprites.add(player)
+        shield = Shield(player.rect.center)
+        all_sprites.add(shield)
+        shields.add(shield)
+        
+        total_enemy = 5
+        total_enemy_count = total_enemy
+        first_enemies_number = 0
+        current_enemy_count = 0
+
+        # Создание стен
+        with open(f"levels/{level_number}.txt", "rt") as f:
+            lines = f.readlines()
+        for i in range(10):
+            for j in range(10):
+                if lines[i][j] ==  "#":
+                    tile = Tile(j * 60, i * 60)
+
+        # Создание spawn
+        spawn_centerxs = ["" for i in range(total_enemy)]
+        coordinates_lst = [25, WIDTH / 2, WIDTH - 25]
+        spawn_centerxs[0] = random.choice(coordinates_lst) # Создание списка координат появления
+        for i in range(1, total_enemy):              # Создание списка координат появления
+            lst = coordinates_lst.copy()
+            lst.remove(spawn_centerxs[i - 1])
+            spawn_centerxs[i] = random.choice(lst)
+        spawn = Spawn(spawn_centerxs[0]) # Создание первого spawn
+
     # Держим цикл на правильной скорости
     clock.tick(FPS)
 
@@ -690,10 +739,10 @@ while running:
     if now - enemy_respawn_time >= appearance_delay and total_enemy_count >= 3 and current_enemy_count < 3:
         if current_enemy_count == 2:
             enemy_respawn_time = now
-            enemy = Enemy(spawn_centerxs[12 - total_enemy_count])
+            enemy = Enemy(spawn_centerxs[total_enemy + 2 - total_enemy_count])
         if current_enemy_count == 1:
             enemy_respawn_time += hits_interval
-            enemy = Enemy(spawn_centerxs[11 - total_enemy_count])
+            enemy = Enemy(spawn_centerxs[total_enemy + 1 - total_enemy_count])
         current_enemy_count += 1
 
     # Проверка, не столкнулась ли пуля игрока со стеной
@@ -710,6 +759,7 @@ while running:
     if not shield.alive():
         hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
         for hit in hits:
+            last_player_hit_time = now
             player.life -= 34
             if player.life > 0:
                 hit_sound.play()
@@ -721,28 +771,29 @@ while running:
                 player.life = 100
                 explosion_sound.play()
     # Если игрок умер, игра окончена
-    if player.lives == 0 and not explosion.alive() and not before_start:
+    if player.lives == 0 and now - last_player_hit_time > 2000 and not before_start:
         game_over_sound.play()
         game_over = True
-        pygame.time.delay(2000)
 
     # Проверка, не ударила ли пуля противника
     hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True)
     for hit in hits:
-        hits_interval = now - last_hit_time
-        last_hit_time = now
+        hits_interval = now - last_enemy_hit_time
+        last_enemy_hit_time = now
         current_enemy_count -= 1
         total_enemy_count -= 1
         if current_enemy_count == 2:
-            enemy_respawn_time = pygame.time.get_ticks()
+            enemy_respawn_time = now
         if total_enemy_count >= 3:
-            spawn = Spawn(spawn_centerxs[12 - total_enemy_count]) 
+            spawn = Spawn(spawn_centerxs[total_enemy + 2 - total_enemy_count]) 
         score += 100
         explosion = Explosion(hit.rect.center)  
         explosion_sound.play()
         if random.random() > 0.9:
             powerup = Powerup(hit.rect.center)
-            
+    # Если противники закончились, игра окончена
+    if total_enemy_count == 0 and now - last_enemy_hit_time > 2000:
+        level_won = True
     
     # Проверка, не столкнулся ли игрок со стеной
     if pygame.sprite.spritecollide(player, tiles, False):
@@ -752,7 +803,7 @@ while running:
     hits = pygame.sprite.groupcollide(enemies, tiles, False, False)
     for hit in hits:
         hit.stop()
-        hit.last_rotate = pygame.time.get_ticks()
+        hit.last_rotate = now
         hit.rotate()
     
     # Проверка столкновений игрока и улучшений
@@ -773,8 +824,9 @@ while running:
             pass
         if hit.type == "life":
             player.lives += 1
-            if player.lives >= 3:
-                player.lives = 3
+            if player.lives >= 5:
+                player.lives = 5
+                player.life = 100
         if hit.type == "time":
             pass
 
@@ -783,7 +835,7 @@ while running:
     for hit in hits:
         player.stop()
         hit.stop()
-        hit.last_rotate = pygame.time.get_ticks()
+        hit.last_rotate = now
         hit.reverse()
  
     # Проверка, не столкнулись ли противники друг с другом
@@ -793,8 +845,8 @@ while running:
         for hit in hits:
             enemy.stop()
             hit.stop()
-            enemy.last_rotate = pygame.time.get_ticks()
-            hit.last_rotate = pygame.time.get_ticks()
+            enemy.last_rotate = now
+            hit.last_rotate = now
             enemy.reverse()            
             hit.reverse()
         enemy.add(enemies)
