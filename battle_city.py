@@ -1,4 +1,4 @@
-# add player levels
+# add levels and tiles
 import pygame
 import random
 import os
@@ -44,7 +44,7 @@ def draw_lives(surf, x, y, lives, img):
     for i in range(lives):
         img.set_colorkey(BLACK)
         img_rect = img.get_rect()
-        img_rect.x = x + 30 * i
+        img_rect.x = x - 30 * i
         img_rect.y = y
         surf.blit(img, img_rect)
 
@@ -81,9 +81,10 @@ def show_game_over_screen():
                 waiting = False
 
 
-WIDTH = 600 # ширина игрового окна
-HEIGHT = 600 # высота игрового окна
+WIDTH = 650 # ширина игрового окна
+HEIGHT = 650 # высота игрового окна
 FPS = 60 # частота кадров в секунду
+TILE_SIZE = 50 # размер блока карты
 
 # Цвета (R, G, B)
 BLACK = (0, 0, 0)
@@ -473,30 +474,14 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.type = random.choice(["levelup"]) # ["gun", "shield", "base", "levelup", "life", "time"]
-        self.image = powerup_images[self.type]
+        self.type = random.choice(["gun", "shield", "base", "levelup", "life", "time"])
+        self.image = powerup_images[self.type] # ["gun", "shield", "base", "levelup", "life", "time"]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center
 
         all_sprites.add(self)
         powerups.add(self)
-
-    def update(self):
-        pass
-
-
-class Tile(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((60, 60))
-        self.image.fill(WHITE)
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-
-        all_sprites.add(self)
-        tiles.add(self)
 
     def update(self):
         pass
@@ -559,12 +544,27 @@ class Shield(pygame.sprite.Sprite):
         self.rect.center = player.rect.center
 
 
+class Tile(pygame.sprite.Sprite):
+    def __init__(self, x, y, tile_type):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = tile_images[tile_type]
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+        all_sprites.add(self)
+        tiles.add(self)
+
+    def update(self):
+        pass
+
+
 # Загрузка изображений
 player_images = []
 for i in range(1, 4):
     filename = f"player_01_0{i}.png"
     img = pygame.image.load(os.path.join(img_dir, filename)).convert()
-    img = pygame.transform.scale(img, (50, 50))
+    img = pygame.transform.scale(img, (42, 42))
     player_images.append(img)
 player_mini_img = pygame.transform.scale(player_images[0], (25, 25))
 
@@ -572,17 +572,17 @@ enemy_images = []
 for i in range(1, 3):
     filename = f"enemy_{i}01.png"
     img = pygame.image.load(os.path.join(img_dir, filename)).convert()
-    img = pygame.transform.scale(img, (50, 50))
+    img = pygame.transform.scale(img, (42, 42))
     img = pygame.transform.rotate(img, 180)
     enemy_images.append(img)
 
-bullet_img = pygame.Surface((8, 16))
+bullet_img = pygame.Surface((7, 14))
 
 explosion_anim = []
 for i in range(1, 4):
     filename = f"expl_{i}.png"
     img = pygame.image.load(os.path.join(img_dir, filename)).convert()
-    img = pygame.transform.scale(img, (90, 90))
+    img = pygame.transform.scale(img, (75, 75))
     explosion_anim.append(img)
 
 powerup_images = {}
@@ -603,16 +603,22 @@ spawn_images = []
 for i in range(1, 3):
     filename = f"spawn_0{i}.png"
     img = pygame.image.load(os.path.join(img_dir, filename)).convert()
-    img = pygame.transform.scale(img, (50, 50))
+    img = pygame.transform.scale(img, (42, 42))
     spawn_images.append(img)
 
 shield_images = []
 for i in range(1, 3):
     filename = f"shield_0{i}.png"
     img = pygame.image.load(os.path.join(img_dir, filename)).convert()
-    img = pygame.transform.scale(img, (60, 60))
+    img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
     shield_images.append(img)
 
+tile_images = {}
+tile_types = ["STEEL", "BRICK", "GRASS", "WATER", "ICE"]
+for i in range(len(tile_types)):
+    img = pygame.image.load(os.path.join(img_dir, f"tile_0{i}.png")).convert()
+    img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+    tile_images[tile_types[i]] = img 
 
 # Загрузка звуков
 game_start_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gamestart.ogg"))
@@ -668,10 +674,20 @@ while running:
         # Создание стен
         with open(f"levels/{level_number}.txt", "rt") as f:
             lines = f.readlines()
-        for i in range(10):
-            for j in range(10):
-                if lines[i][j] ==  "#":
-                    tile = Tile(j * 60, i * 60)
+        for i in range(13):
+            for j in range(13):
+                if lines[i][j] ==  "0":
+                    pass
+                elif lines[i][j] ==  "1":
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "STEEL")
+                elif lines[i][j] ==  "2":
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "BRICK")
+                elif lines[i][j] ==  "3":
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "GRASS")
+                elif lines[i][j] ==  "4":
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "WATER")
+                elif lines[i][j] ==  "5":
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "ICE") 
 
         # Создание spawn
         spawn_centerxs = ["" for i in range(total_enemy)]
@@ -726,10 +742,20 @@ while running:
         # Создание стен
         with open(f"levels/{level_number}.txt", "rt") as f:
             lines = f.readlines()
-        for i in range(10):
-            for j in range(10):
-                if lines[i][j] ==  "#":
-                    tile = Tile(j * 60, i * 60)
+        for i in range(13):
+            for j in range(13):
+                if lines[i][j] ==  "0":
+                    pass
+                elif lines[i][j] ==  "1":
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "STEEL")
+                elif lines[i][j] ==  "2":
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "BRICK")
+                elif lines[i][j] ==  "3":
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "GRASS")
+                elif lines[i][j] ==  "4":
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "WATER")
+                elif lines[i][j] ==  "5":
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "ICE") 
 
         # Создание spawn
         spawn_centerxs = ["" for i in range(total_enemy)]
@@ -828,7 +854,7 @@ while running:
         explosion = Explosion(hit.rect.center)  
         explosion_sound.play()
         
-        if random.random() > 0.5:
+        if random.random() > 0.8:
             powerup = Powerup(hit.rect.center)     
     # Если противники закончились, игра окончена
     if total_enemy_count == 0 and now - last_enemy_hit_time > 2000:
@@ -854,6 +880,7 @@ while running:
         current_score = 100
         current_score_centerx = hit.rect.centerx
         current_score_top = hit.rect.top
+        total_score += 100
         powerup_sound.play()
         if hit.type == "gun":
             player.upgrade_gun()
@@ -904,10 +931,10 @@ while running:
     screen.fill(BLACK)
     all_sprites.draw(screen)
     draw_text(screen, WIDTH / 3, 5, str(now_time), 24)
-    draw_text(screen, WIDTH / 3 * 2 - 75, 5, str(total_score), 24)
+    draw_text(screen, WIDTH / 3 * 2 - 25, 5, str(total_score), 24)
     draw_shield_bar(screen, 5, 10, player.life)
-    draw_lives(screen, WIDTH - 150, 5, player.lives, player_mini_img)
-    draw_text(screen, current_score_centerx, current_score_top, str(current_score), 20)
+    draw_lives(screen, WIDTH - 30, 5, player.lives, player_mini_img)
+    draw_text(screen, current_score_centerx, current_score_top, str(current_score), 18)
 
     # после отрисовки всего, переворачиваем экран
     pygame.display.flip()
