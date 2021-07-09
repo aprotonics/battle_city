@@ -1,4 +1,4 @@
-# add levels and tiles
+# add layers and interactions with tiles 
 import pygame
 import random
 import os
@@ -128,8 +128,10 @@ class Player(pygame.sprite.Sprite):
         self.level = level
         self.hidden = False
         self.hide_timer = pygame.time.get_ticks()
-
+        
         all_sprites.add(self)
+        layers.add(self)
+        
     
     def rotate(self, direction):
         angle = 0
@@ -397,6 +399,8 @@ class Bullet(pygame.sprite.Sprite):
         self.rotate(self.direction)
         
         all_sprites.add(self)
+        bullets.add(self)
+        layers.add(self)
 
     def rotate(self, direction):
         angle = 0
@@ -547,14 +551,28 @@ class Shield(pygame.sprite.Sprite):
 class Tile(pygame.sprite.Sprite):
     def __init__(self, x, y, tile_type):
         pygame.sprite.Sprite.__init__(self)
-        self.image = tile_images[tile_type]
+        self.layer = 0
+        self.type = tile_type
+        self.image = tile_images[self.type]
+        self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        if self.type == "STEEL":
+            self.layer = 0
+        if self.type == "BRICK":
+            self.layer = 0
+        if self.type == "GRASS":
+            self.layer = 1
+        if self.type == "WATER":
+            self.layer = -1
+        if self.type == "ICE":
+            self.layer = -1
 
         all_sprites.add(self)
         tiles.add(self)
-
+        layers.add(self)
+        
     def update(self):
         pass
 
@@ -616,9 +634,9 @@ for i in range(1, 3):
 tile_images = {}
 tile_types = ["STEEL", "BRICK", "GRASS", "WATER", "ICE"]
 for i in range(len(tile_types)):
-    img = pygame.image.load(os.path.join(img_dir, f"tile_0{i}.png")).convert()
-    img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
-    tile_images[tile_types[i]] = img 
+    img = pygame.image.load(os.path.join(img_dir, f"tile_0{i}.png")).convert()   
+    img = pygame.transform.scale(img, (int(TILE_SIZE / 2), int(TILE_SIZE / 2)))
+    tile_images[tile_types[i]] = img
 
 # Загрузка звуков
 game_start_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gamestart.ogg"))
@@ -652,14 +670,16 @@ while running:
         all_sprites = pygame.sprite.Group()
         enemies = pygame.sprite.Group()
         new_enemies = pygame.sprite.Group()
+        bullets = pygame.sprite.Group()
         player_bullets = pygame.sprite.Group()
         enemy_bullets = pygame.sprite.Group()
         powerups = pygame.sprite.Group()
         tiles = pygame.sprite.Group()
         spawns = pygame.sprite.Group()
         shields = pygame.sprite.Group()
+        layers = pygame.sprite.LayeredUpdates()
         player = Player(player_level, player_image)
-        shield = Shield(player.rect.center)
+        shield = Shield(player.rect.center)        
         
         current_score = ""
         current_score_centerx = -100
@@ -680,14 +700,29 @@ while running:
                     pass
                 elif lines[i][j] ==  "1":
                     tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "STEEL")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "STEEL")
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "STEEL")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "STEEL")
                 elif lines[i][j] ==  "2":
                     tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "BRICK")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "BRICK")
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "BRICK")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "BRICK")
                 elif lines[i][j] ==  "3":
                     tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "GRASS")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "GRASS")
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "GRASS")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "GRASS")
                 elif lines[i][j] ==  "4":
                     tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "WATER")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "WATER")
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "WATER")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "WATER")
                 elif lines[i][j] ==  "5":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "ICE") 
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "ICE")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "ICE")
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "ICE")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "ICE")
 
         # Создание spawn
         spawn_centerxs = ["" for i in range(total_enemy)]
@@ -726,6 +761,7 @@ while running:
         tiles = pygame.sprite.Group()
         spawns = pygame.sprite.Group()
         shields = pygame.sprite.Group()
+        layers = pygame.sprite.LayeredUpdates()
         player = Player(player_level, player_image)
         player.level = player_level
         player.first_image = player_image
@@ -748,14 +784,29 @@ while running:
                     pass
                 elif lines[i][j] ==  "1":
                     tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "STEEL")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "STEEL")
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "STEEL")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "STEEL")
                 elif lines[i][j] ==  "2":
                     tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "BRICK")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "BRICK")
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "BRICK")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "BRICK")
                 elif lines[i][j] ==  "3":
                     tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "GRASS")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "GRASS")
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "GRASS")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "GRASS")
                 elif lines[i][j] ==  "4":
                     tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "WATER")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "WATER")
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "WATER")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "WATER")
                 elif lines[i][j] ==  "5":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "ICE") 
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "ICE")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "ICE")
+                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "ICE")
+                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "ICE")
 
         # Создание spawn
         spawn_centerxs = ["" for i in range(total_enemy)]
@@ -807,11 +858,35 @@ while running:
             enemy = Enemy(spawn_centerxs[total_enemy + 1 - total_enemy_count])
         current_enemy_count += 1
 
-    # Проверка, не столкнулась ли пуля игрока со стеной
-    hits = pygame.sprite.groupcollide(tiles, player_bullets, False, True)
+    # Проверка, не столкнулась ли пуля игрока с элементом стены
+    hits = pygame.sprite.groupcollide(tiles, player_bullets, False, False)
+    for hit in hits:
+        if hit.type == "STEEL":
+            hits[hit][0].kill() # убрать пулю
+        if hit.type == "BRICK":
+            hit.kill() # убрать элементы стены
+            hits[hit][0].kill() # убрать пулю
+        if hit.type == "GRASS":
+            pass
+        if hit.type == "WATER":
+            pass
+        if hit.type == "ICE":
+            pass
 
-    # Проверка, не столкнулась ли пуля противника со стеной
-    hits = pygame.sprite.groupcollide(tiles, enemy_bullets, False, True)
+    # Проверка, не столкнулась ли пуля противника с элементом стены
+    hits = pygame.sprite.groupcollide(tiles, enemy_bullets, False, False)
+    for hit in hits:
+        if hit.type == "STEEL":
+            hits[hit][0].kill() # убрать пулю
+        if hit.type == "BRICK":
+            hit.kill() # убрать элементы стены
+            hits[hit][0].kill() # убрать пулю
+        if hit.type == "GRASS":
+            pass
+        if hit.type == "WATER":
+            pass
+        if hit.type == "ICE":
+            pass
 
     # Проверка, не ударила ли пуля щит
     for shield in shields:
@@ -862,17 +937,42 @@ while running:
         player_image = player.first_image
         level_won = True
     
-    # Проверка, не столкнулся ли игрок со стеной
-    if pygame.sprite.spritecollide(player, tiles, False):
-        player.stop()
+    # Проверка, не столкнулся ли игрок с элементом стены
+    hits = pygame.sprite.spritecollide(player, tiles, False)
+    if hits:
+        for hit in hits:
+            if hit.type == "STEEL":
+                player.stop()
+            if hit.type == "BRICK":
+                player.stop()
+            if hit.type == "GRASS":
+                pass
+            if hit.type == "WATER":
+                player.stop()
+            if hit.type == "ICE":
+                pass
+            break
 
-    # Проверка, не столкнулся ли противник со стеной
+    # Проверка, не столкнулся ли противник с элементом стены
     hits = pygame.sprite.groupcollide(enemies, tiles, False, False)
     for hit in hits:
-        hit.stop()
-        hit.last_rotate = now
-        hit.rotate()
-    
+        if hits[hit][0].type == "STEEL":
+            hit.stop()
+            hit.last_rotate = now
+            hit.rotate()
+        if hits[hit][0].type == "BRICK":
+            hit.stop()
+            hit.last_rotate = now
+            hit.rotate()
+        if hits[hit][0].type == "GRASS":
+            pass
+        if hits[hit][0].type == "WATER":
+            hit.stop()
+            hit.last_rotate = now
+            hit.rotate()
+        if hits[hit][0].type == "ICE":
+            pass
+        
     # Проверка столкновений игрока и улучшений
     hits = pygame.sprite.spritecollide(player, powerups, True)
     for hit in hits:
@@ -930,6 +1030,7 @@ while running:
     ##### Визуализация (сборка)
     screen.fill(BLACK)
     all_sprites.draw(screen)
+    layers.draw(screen)
     draw_text(screen, WIDTH / 3, 5, str(now_time), 24)
     draw_text(screen, WIDTH / 3 * 2 - 25, 5, str(total_score), 24)
     draw_shield_bar(screen, 5, 10, player.life)
