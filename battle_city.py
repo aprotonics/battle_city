@@ -1,4 +1,4 @@
-# add layers and interactions with tiles 
+# add water waves
 import pygame
 import random
 import os
@@ -121,13 +121,26 @@ class Player(pygame.sprite.Sprite):
         self.direction = "up"
         self.speedx = 0
         self.speedy = 0
-        self.shoot_delay = 400
+        self.shoot_delay = 500
         self.last_shot = pygame.time.get_ticks()
+        self.bullet_speed = 10
+        self.bullet_strength = 1
         self.life = 100
+        self.armor = 0
         self.lives = 3
         self.level = level
         self.hidden = False
         self.hide_timer = pygame.time.get_ticks()
+        if self.level == 1:
+            self.shoot_delay = 250
+            self.bullet_speed = 15
+            self.armor = 50
+            self.bullet_strength = 1
+        if self.level == 2:
+            self.shoot_delay = 250
+            self.bullet_speed = 15
+            self.armor = 150
+            self.bullet_strength = 2
         
         all_sprites.add(self)
         layers.add(self)
@@ -203,7 +216,7 @@ class Player(pygame.sprite.Sprite):
             if self.direction == "left":
                 x = self.rect.left
                 y = self.rect.centery
-            player_bullet = PlayerBullet(x, y, self.direction)
+            player_bullet = PlayerBullet(x, y, self.direction, self.bullet_speed, self.bullet_strength)
             player_bullets.add(player_bullet)
             
             shoot_sound.play()
@@ -227,6 +240,15 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = center
         self.life = 100
+        if self.level == 1:
+            self.shoot_delay = 250
+            self.bullet_speed = 15
+            self.armor = 50
+        if self.level == 2:
+            self.shoot_delay = 250
+            self.bullet_speed = 15
+            self.armor = 150
+            self.bullet_strength = 2
     
     def downgrade(self, center):
         self.level = 0
@@ -236,6 +258,11 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = center
         self.life = 100
+        self.shoot_delay = 500
+        self.bullet_speed = 10
+        self.armor = 0
+        self.bullet_strength = 1
+
 
     def update(self):
         # Показать, если скрыто
@@ -283,6 +310,8 @@ class Enemy(pygame.sprite.Sprite):
         self.speedy = enemy_speed
         self.shoot_delay = 500
         self.last_shot = pygame.time.get_ticks()
+        self.bullet_speed = 10
+        self.bullet_strength = 1
 
         all_sprites.add(self)
         new_enemies.add(self)
@@ -387,15 +416,16 @@ class Enemy(pygame.sprite.Sprite):
         
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, centerx, centery, direction):
+    def __init__(self, centerx, centery, direction, speed=10, strength=1):
         pygame.sprite.Sprite.__init__(self)
         self.image = bullet_img
         self.image.fill(YELLOW)
         self.rect = self.image.get_rect()
         self.rect.center = (centerx, centery)
         self.direction = direction
-        self.speedx = 10
-        self.speedy = -10
+        self.speedx = speed
+        self.speedy = -speed
+        self.strength = strength
         self.rotate(self.direction)
         
         all_sprites.add(self)
@@ -478,7 +508,7 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.type = random.choice(["gun", "shield", "base", "levelup", "life", "time"])
+        self.type = random.choice(["levelup"])
         self.image = powerup_images[self.type] # ["gun", "shield", "base", "levelup", "life", "time"]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -551,13 +581,15 @@ class Shield(pygame.sprite.Sprite):
 class Tile(pygame.sprite.Sprite):
     def __init__(self, x, y, tile_type):
         pygame.sprite.Sprite.__init__(self)
+        self.x = x
+        self.y = y
         self.layer = 0
         self.type = tile_type
         self.image = tile_images[self.type]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
+        self.rect.x = self.x
+        self.rect.y = self.y
         if self.type == "STEEL":
             self.layer = 0
         if self.type == "BRICK":
@@ -565,7 +597,10 @@ class Tile(pygame.sprite.Sprite):
         if self.type == "GRASS":
             self.layer = 1
         if self.type == "WATER":
+            self.subtype = 0
             self.layer = -1
+            self.last_update = pygame.time.get_ticks()
+            self.frame_rate = 120
         if self.type == "ICE":
             self.layer = -1
 
@@ -574,7 +609,20 @@ class Tile(pygame.sprite.Sprite):
         layers.add(self)
         
     def update(self):
-        pass
+        if self.type == 'WATER':
+            now = pygame.time.get_ticks()
+            if now - self.last_update > self.frame_rate:
+                self.last_update = now
+                self.subtype = int(not bool(self.subtype))
+                if self.subtype == 1:
+                    self.image = tile_images["WATER2"]
+                    self.image.set_colorkey(BLACK)   
+                if self.subtype == 0:
+                    self.image = tile_images["WATER"]
+                    self.image.set_colorkey(BLACK)
+                self.rect = self.image.get_rect()
+                self.rect.x = self.x
+                self.rect.y = self.y
 
 
 # Загрузка изображений
@@ -632,7 +680,7 @@ for i in range(1, 3):
     shield_images.append(img)
 
 tile_images = {}
-tile_types = ["STEEL", "BRICK", "GRASS", "WATER", "ICE"]
+tile_types = ["STEEL", "BRICK", "GRASS", "WATER", "WATER2", "ICE"]
 for i in range(len(tile_types)):
     img = pygame.image.load(os.path.join(img_dir, f"tile_0{i}.png")).convert()   
     img = pygame.transform.scale(img, (int(TILE_SIZE / 2), int(TILE_SIZE / 2)))
@@ -862,6 +910,8 @@ while running:
     hits = pygame.sprite.groupcollide(tiles, player_bullets, False, False)
     for hit in hits:
         if hit.type == "STEEL":
+            if hits[hit][0].strength == 2:
+                hit.kill()
             hits[hit][0].kill() # убрать пулю
         if hit.type == "BRICK":
             hit.kill() # убрать элементы стены
@@ -897,7 +947,13 @@ while running:
         hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
         for hit in hits:
             last_player_hit_time = now
-            player.life -= 34
+            if player.armor > 100:
+                player.armor -= 100
+            elif player.armor > 0:
+                player.life -= 100 - player.armor
+                player.armor = 0
+            elif player.armor == 0:
+                player.life -= 100
             if player.life > 0:
                 hit_sound.play()
             else:
@@ -929,7 +985,7 @@ while running:
         explosion = Explosion(hit.rect.center)  
         explosion_sound.play()
         
-        if random.random() > 0.8:
+        if random.random() > 0.1:
             powerup = Powerup(hit.rect.center)     
     # Если противники закончились, игра окончена
     if total_enemy_count == 0 and now - last_enemy_hit_time > 2000:
