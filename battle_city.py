@@ -1,4 +1,4 @@
-# add Time powerup
+# add armor in life bar and new enemy classes
 import pygame
 import random
 import os
@@ -28,15 +28,20 @@ def draw_text(surf, x, y, text, size):
     surf.blit(text_surface, text_rect)
 
 
-def draw_shield_bar(surf, x, y, pct):
-    if pct < 0:
-        pct = 0
-    BAR_LENGTH = 100
+def draw_life_bar(surf, x, y, pict1, pict2):
+    if pict2 < 0:
+        pict2 = 0
+    if pict1 < 0:
+        pict1 = 0
+    LIFE_BAR_LENGTH = 100 * 2 / 3
+    ARMOR_BAR_LENGTH = pict2 * 2 / 3
+    BAR_TOTAL_LENGTH = LIFE_BAR_LENGTH + ARMOR_BAR_LENGTH
     BAR_HEIGHT = 10
-    fill = (pct / 100) * BAR_LENGTH
-    outline_rect = pygame.Rect(x, y, BAR_LENGTH, BAR_HEIGHT)
-    fill_rect = pygame.Rect(x, y, fill, BAR_HEIGHT)
-    pygame.draw.rect(surf, GREEN, fill_rect)
+    outline_rect = pygame.Rect(x, y, BAR_TOTAL_LENGTH, BAR_HEIGHT)
+    fill_rect1 = pygame.Rect(x, y, pict1 * 2 / 3, BAR_HEIGHT)
+    fill_rect2 = pygame.Rect(x + LIFE_BAR_LENGTH, y, pict2 * 2 / 3, BAR_HEIGHT)
+    pygame.draw.rect(surf, GREEN, fill_rect1)
+    pygame.draw.rect(surf, WHITE, fill_rect2)
     pygame.draw.rect(surf, WHITE, outline_rect, 2)
 
 
@@ -125,7 +130,7 @@ class Player(pygame.sprite.Sprite):
         self.last_shot = pygame.time.get_ticks()
         self.bullet_speed = 10
         self.bullet_strength = 1
-        self.life = 150
+        self.life = 100
         self.armor = 0
         self.lives = 3
         self.level = level
@@ -257,7 +262,6 @@ class Player(pygame.sprite.Sprite):
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center
-        self.life = 100
         self.shoot_delay = 500
         self.bullet_speed = 10
         self.armor = 0
@@ -274,6 +278,7 @@ class Player(pygame.sprite.Sprite):
             self.rect.centerx = WIDTH / 2
             self.rect.bottom = HEIGHT
             self.direction = "up"
+            self.life = 100
             shield = Shield(self.rect.center)
 
         if not self.hidden:
@@ -296,7 +301,7 @@ class Player(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, centerx):
         pygame.sprite.Sprite.__init__(self)
-        self.rand_image = random.choice(enemy_images)
+        self.rand_image = random.choice(enemy_images)[0]
         self.image = self.rand_image
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -306,12 +311,15 @@ class Enemy(pygame.sprite.Sprite):
         self.moving_time = 0
         self.moving_time = 3000 # Частота смены направления движения
         self.last_rotate = pygame.time.get_ticks()
+        self.speed = enemy_speed
         self.speedx = 0
-        self.speedy = enemy_speed
+        self.speedy = self.speed
         self.shoot_delay = 500
         self.last_shot = pygame.time.get_ticks()
         self.bullet_speed = 10
         self.bullet_strength = 1
+        self.life = 100
+        self.armor = 0
         self.frozen = False
 
         all_sprites.add(self)
@@ -323,18 +331,18 @@ class Enemy(pygame.sprite.Sprite):
         if self.direction == "up":
             angle = 180
             self.speedx = 0
-            self.speedy = -enemy_speed
+            self.speedy = -self.speed
         elif self.direction == "right":
             angle = 90
-            self.speedx = enemy_speed
+            self.speedx = self.speed
             self.speedy = 0
         elif self.direction == "down":
             angle = 0
             self.speedx = 0
-            self.speedy = enemy_speed
+            self.speedy = self.speed
         elif self.direction == "left":
             angle = -90
-            self.speedx = -enemy_speed
+            self.speedx = -self.speed
             self.speedy = 0
         new_image = pygame.transform.rotate(self.rand_image, angle)
         old_center = self.rect.center
@@ -346,16 +354,16 @@ class Enemy(pygame.sprite.Sprite):
     def reverse(self):
         if self.direction == "up":
             self.direction = "down"
-            self.speedy = enemy_speed
+            self.speedy = self.speed
         elif self.direction == "right":
             self.direction = "left"
-            self.speedx = -enemy_speed
+            self.speedx = -self.speed
         elif self.direction == "down":
             self.direction = "up"
-            self.speedy = -enemy_speed
+            self.speedy = -self.speed
         elif self.direction == "left":
             self.direction = "right"
-            self.speedx = enemy_speed
+            self.speedx = self.speed
         new_image = pygame.transform.rotate(self.image, 180)
         old_center = self.rect.center
         self.image = new_image
@@ -384,18 +392,18 @@ class Enemy(pygame.sprite.Sprite):
         if now - self.last_shot > self.shoot_delay:
             self.last_shot = pygame.time.get_ticks()
             if self.direction == "up":
-                x1 = self.rect.centerx
-                y1 = self.rect.top
+                x = self.rect.centerx
+                y = self.rect.top
             if self.direction == "right":
-                x1 = self.rect.right
-                y1 = self.rect.centery
+                x = self.rect.right
+                y = self.rect.centery
             if self.direction == "down":
-                x1 = self.rect.centerx
-                y1 = self.rect.bottom
+                x = self.rect.centerx
+                y = self.rect.bottom
             if self.direction == "left":
-                x1 = self.rect.left
-                y1 = self.rect.centery
-            enemy_bullet = EnemyBullet(x1, y1, self.direction)
+                x = self.rect.left
+                y = self.rect.centery
+            enemy_bullet = EnemyBullet(x, y, self.direction, self.bullet_speed, self.bullet_strength)
             enemy_bullets.add(enemy_bullet)
             
 
@@ -415,7 +423,79 @@ class Enemy(pygame.sprite.Sprite):
                 self.rotate()
             
             self.shoot()
+
+
+class NormalEnemy(Enemy):
+    def __init__(self, centerx):
+        super().__init__(centerx)
+        self.rand_image = random.choice(enemy_images)[0]
+        self.image = self.rand_image
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = centerx
+        self.rect.y = 0
         
+        self.tank_type = "normal"
+        self.speed = enemy_speed
+        self.speedy = self.speed
+        self.bullet_speed = 10
+        self.bullet_strength = 1
+        self.armor = 0
+        
+
+class FastEnemy(Enemy):
+    def __init__(self, centerx):
+        super().__init__(centerx)
+        self.rand_image = random.choice(enemy_images)[1]
+        self.image = self.rand_image
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = centerx
+        self.rect.y = 0
+        
+        self.tank_type = "fast"
+        self.speed = enemy_speed * 1.5
+        self.speedy = self.speed
+        self.bullet_speed = 15
+        self.bullet_strength = 1
+        self.armor = 0
+
+   
+class EnhancedEnemy(Enemy):
+    def __init__(self, centerx):
+        super().__init__(centerx)
+        self.rand_image = random.choice(enemy_images)[2]
+        self.image = self.rand_image
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = centerx
+        self.rect.y = 0
+
+        self.tank_type = "enhanced"
+        self.speed = enemy_speed
+        self.speedy = self.speed
+        self.bullet_speed = 10
+        self.bullet_strength = 1
+        self.armor = 50
+    
+
+class HeavyEnemy(Enemy):
+    def __init__(self, centerx):
+        super().__init__(centerx)
+        self.rand_image = random.choice(enemy_images)[3]
+        self.image = self.rand_image
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = centerx
+        self.rect.y = 0
+
+        self.tank_type = "heavy"
+        self.speed = enemy_speed
+        self.speedy = self.speed
+        self.bullet_speed = 10
+        self.bullet_strength = 1
+        self.armor = 150
+    
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, centerx, centery, direction, speed=10, strength=1):
@@ -510,7 +590,7 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.type = random.choice(["time"])
+        self.type = random.choice(["levelup"])
         self.image = powerup_images[self.type] # ["gun", "shield", "base", "levelup", "life", "time"]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -637,12 +717,22 @@ for i in range(1, 4):
 player_mini_img = pygame.transform.scale(player_images[0], (25, 25))
 
 enemy_images = []
-for i in range(1, 3):
-    filename = f"enemy_{i}01.png"
+blue_enemy_images = []
+red_enemy_images = []
+for i in range(1, 5):
+    filename = f"enemy_10{i}.png"
     img = pygame.image.load(os.path.join(img_dir, filename)).convert()
     img = pygame.transform.scale(img, (42, 42))
     img = pygame.transform.rotate(img, 180)
-    enemy_images.append(img)
+    blue_enemy_images.append(img)
+for i in range(1, 5):
+    filename = f"enemy_20{i}.png"
+    img = pygame.image.load(os.path.join(img_dir, filename)).convert()
+    img = pygame.transform.scale(img, (42, 42))
+    img = pygame.transform.rotate(img, 180)
+    red_enemy_images.append(img)
+enemy_images.append(blue_enemy_images)
+enemy_images.append(red_enemy_images)
 
 bullet_img = pygame.Surface((7, 14))
 
@@ -898,9 +988,10 @@ while running:
         current_score = ""
 
     # Добавление первых противников и spawns
+    enemies_lst = [NormalEnemy, FastEnemy, EnhancedEnemy, HeavyEnemy] # Список подклассов противника
     if total_enemy_count < 3 and now - enemy_respawn_time >= appearance_delay:
         enemy_respawn_time = now
-        enemy = Enemy(spawn_centerxs[total_enemy_count])
+        enemy = random.choice(enemies_lst)(spawn_centerxs[total_enemy_count])
         current_enemy_count += 1
         total_enemy_count += 1
         if total_enemy_count < 3:
@@ -914,7 +1005,7 @@ while running:
             enemy_respawn_time += hits_interval
         if new_enemies_number != 0: # После применения улучшения Gun
             enemy_respawn_time = now
-        enemy = Enemy(spawn_centerxs[total_enemy_count])
+        enemy = random.choice(enemies_lst)(spawn_centerxs[total_enemy_count])
         current_enemy_count += 1
         total_enemy_count += 1
         while new_enemies_number != 0: # После применения улучшения Gun
@@ -925,7 +1016,7 @@ while running:
     if (now - enemy_respawn_time >= appearance_delay and remaining_enemy_count < 3 
         and remaining_enemy_count != current_enemy_count):
         enemy_respawn_time = now
-        enemy = Enemy(spawn_centerxs[total_enemy_count])
+        enemy = random.choice(enemies_lst)(spawn_centerxs[total_enemy_count])
         current_enemy_count += 1
         total_enemy_count += 1
         while new_enemies_number != 0: # После применения улучшения Gun
@@ -953,6 +1044,8 @@ while running:
     hits = pygame.sprite.groupcollide(tiles, enemy_bullets, False, False)
     for hit in hits:
         if hit.type == "STEEL":
+            if hits[hit][0].strength == 2:
+                hit.kill()
             hits[hit][0].kill() # убрать пулю
         if hit.type == "BRICK":
             hit.kill() # убрать элементы стены
@@ -994,28 +1087,40 @@ while running:
         game_over = True
     
     # Проверка, не ударила ли пуля противника
-    hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True)
+    hits = pygame.sprite.groupcollide(enemies, player_bullets, False, True)
     for hit in hits:
         hits_interval = now - last_enemy_hit_time
         last_enemy_hit_time = now
-        current_score = 100
-        current_score_centerx = hit.rect.centerx + 20
-        current_score_top = hit.rect.top + 20
-        current_enemy_count -= 1
-        remaining_enemy_count -= 1
-        if current_enemy_count == 2:
-            enemy_respawn_time = now
-        if remaining_enemy_count >= 3:
+
+        if hit.armor > 100 * hits[hit][0].strength:
+            hit.armor -= 100 * hits[hit][0].strength        # Сила пули
+        elif hit.armor > 100 * (hits[hit][0].strength - 1):
+            hit.life -= 100 * hits[hit][0].strength - hit.armor
+            hit.armor = 0
+        elif hit.armor == 0:
+            hit.life -= 100
+        if hit.life > 0:
+            hit_sound.play()
+        else:                       # Если противник убит
+            current_score = 100
+            current_score_centerx = hit.rect.centerx + 20
+            current_score_top = hit.rect.top + 20
+            current_enemy_count -= 1
+            remaining_enemy_count -= 1
             if current_enemy_count == 2:
-                spawn = Spawn(spawn_centerxs[total_enemy_count]) 
-            if current_enemy_count == 1:
-                spawn = Spawn(spawn_centerxs[total_enemy_count + 1]) 
-        total_score += 100
-        explosion = Explosion(hit.rect.center)  
-        explosion_sound.play()
-        
-        if random.random() > 0.1:
-            powerup = Powerup(hit.rect.center)     
+                enemy_respawn_time = now
+            if remaining_enemy_count >= 3:
+                if current_enemy_count == 2:
+                    spawn = Spawn(spawn_centerxs[total_enemy_count]) 
+                if current_enemy_count == 1:
+                    spawn = Spawn(spawn_centerxs[total_enemy_count + 1]) 
+            total_score += 100
+            explosion = Explosion(hit.rect.center)
+            hit.kill()  
+            explosion_sound.play()
+            
+            if random.random() > 0.1:
+                powerup = Powerup(hit.rect.center)     
     # Если противники закончились, игра окончена
     if remaining_enemy_count == 0 and now - last_enemy_hit_time > 2000 and now - powerup_hit_time > 2000:
         player_level = player.level
@@ -1140,7 +1245,7 @@ while running:
     layers.draw(screen)
     draw_text(screen, WIDTH / 3, 5, str(formatted_now_time), 24)
     draw_text(screen, WIDTH / 3 * 2 - 25, 5, str(total_score), 24)
-    draw_shield_bar(screen, 5, 10, player.life)
+    draw_life_bar(screen, 5, 10, player.life, player.armor)
     draw_lives(screen, WIDTH - 30, 5, player.lives, player_mini_img)
     draw_text(screen, current_score_centerx, current_score_top, str(current_score), 18)
 
