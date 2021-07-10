@@ -1,4 +1,4 @@
-# bug fix
+# add Gun powerup
 import pygame
 import random
 import os
@@ -47,7 +47,7 @@ def draw_lives(surf, x, y, lives, img):
         img_rect.x = x - 30 * i
         img_rect.y = y
         surf.blit(img, img_rect)
-
+  
 
 def show_start_screen():
     screen.fill(BLACK)
@@ -187,7 +187,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.x += self.speedx
         self.rect.y += self.speedy 
         if (keystate[pygame.K_SPACE] == True and
-        (current_enemy_count > 1 or total_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
+        (current_enemy_count > 1 or remaining_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
             self.shoot()
     
     def stop(self):
@@ -508,7 +508,7 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.type = random.choice(["levelup"])
+        self.type = random.choice(["gun"])
         self.image = powerup_images[self.type] # ["gun", "shield", "base", "levelup", "life", "time"]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -735,9 +735,10 @@ while running:
         level_number = 1
         total_score = 0
         total_enemy = 5
-        total_enemy_count = total_enemy
-        first_enemies_number = 0
+        remaining_enemy_count = total_enemy
         current_enemy_count = 0
+        total_enemy_count = 0
+        new_enemies_number = 0
 
         # Создание стен
         with open(f"levels/{level_number}.txt", "rt") as f:
@@ -819,9 +820,10 @@ while running:
         current_score_centerx = -100
         current_score_top = -100
         total_enemy = 5
-        total_enemy_count = total_enemy
-        first_enemies_number = 0
+        remaining_enemy_count = total_enemy
         current_enemy_count = 0
+        total_enemy_count = 0
+        new_enemies_number = 0
 
         # Создание стен
         with open(f"levels/{level_number}.txt", "rt") as f:
@@ -888,29 +890,39 @@ while running:
         current_score = ""
 
     # Добавление первых противников и spawns
-    if first_enemies_number < 3 and now - enemy_respawn_time >= appearance_delay:
+    if total_enemy_count < 3 and now - enemy_respawn_time >= appearance_delay:
         enemy_respawn_time = now
-        enemy = Enemy(spawn_centerxs[first_enemies_number])
-        first_enemies_number += 1
+        enemy = Enemy(spawn_centerxs[total_enemy_count])
         current_enemy_count += 1
-        if first_enemies_number < 3:
-            spawn = Spawn(spawn_centerxs[first_enemies_number])
+        total_enemy_count += 1
+        if total_enemy_count < 3:
+            spawn = Spawn(spawn_centerxs[total_enemy_count])
 
     # Добавление остальных противников и spawns
-    if now - enemy_respawn_time >= appearance_delay and total_enemy_count >= 3 and current_enemy_count < 3:
-        if current_enemy_count == 2:
+    if now - enemy_respawn_time >= appearance_delay and remaining_enemy_count >= 3 and current_enemy_count < 3:
+        if current_enemy_count == 2 and new_enemies_number == 0:
             enemy_respawn_time = now
-            enemy = Enemy(spawn_centerxs[total_enemy + 2 - total_enemy_count])
-        if current_enemy_count == 1:
+        if current_enemy_count == 1 and new_enemies_number == 0:
             enemy_respawn_time += hits_interval
-            enemy = Enemy(spawn_centerxs[total_enemy + 1 - total_enemy_count])
+        if new_enemies_number != 0: # После применения улучшения Gun
+            enemy_respawn_time = now
+        enemy = Enemy(spawn_centerxs[total_enemy_count])
         current_enemy_count += 1
+        total_enemy_count += 1
+        while new_enemies_number != 0: # После применения улучшения Gun
+            spawn = Spawn(spawn_centerxs[total_enemy_count])
+            new_enemies_number -= 1
 
-    # Добавление последнего противника
-    if (now - enemy_respawn_time >= appearance_delay and total_enemy_count < 3 
-        and total_enemy_count != current_enemy_count):
-        enemy = Enemy(spawn_centerxs[total_enemy + 1 - total_enemy_count])
+    # Добавление последних противников
+    if (now - enemy_respawn_time >= appearance_delay and remaining_enemy_count < 3 
+        and remaining_enemy_count != current_enemy_count):
+        enemy_respawn_time = now
+        enemy = Enemy(spawn_centerxs[total_enemy_count])
         current_enemy_count += 1
+        total_enemy_count += 1
+        while new_enemies_number != 0: # После применения улучшения Gun
+            spawn = Spawn(spawn_centerxs[total_enemy_count])
+            new_enemies_number -= 1
 
     # Проверка, не столкнулась ли пуля игрока с элементом стены
     hits = pygame.sprite.groupcollide(tiles, player_bullets, False, False)
@@ -982,11 +994,14 @@ while running:
         current_score_centerx = hit.rect.centerx + 20
         current_score_top = hit.rect.top + 20
         current_enemy_count -= 1
-        total_enemy_count -= 1
+        remaining_enemy_count -= 1
         if current_enemy_count == 2:
             enemy_respawn_time = now
-        if total_enemy_count >= 3:
-            spawn = Spawn(spawn_centerxs[total_enemy + 2 - total_enemy_count]) 
+        if remaining_enemy_count >= 3:
+            if current_enemy_count == 2:
+                spawn = Spawn(spawn_centerxs[total_enemy_count]) 
+            if current_enemy_count == 1:
+                spawn = Spawn(spawn_centerxs[total_enemy_count + 1]) 
         total_score += 100
         explosion = Explosion(hit.rect.center)  
         explosion_sound.play()
@@ -994,7 +1009,7 @@ while running:
         if random.random() > 0.1:
             powerup = Powerup(hit.rect.center)     
     # Если противники закончились, игра окончена
-    if total_enemy_count == 0 and now - last_enemy_hit_time > 2000:
+    if remaining_enemy_count == 0 and now - last_enemy_hit_time > 2000 and now - powerup_hit_time > 2000:
         player_level = player.level
         player_image = player.first_image
         level_won = True
@@ -1045,7 +1060,16 @@ while running:
         total_score += 100
         powerup_sound.play()
         if hit.type == "gun":
-            player.upgrade_gun()
+            if enemies:
+                new_enemies_number = remaining_enemy_count - current_enemy_count # Количество противников,
+                for enemy in enemies:                              # которое нужно добавить после очистки карты
+                    enemy.kill()
+                    remaining_enemy_count -= 1
+                current_enemy_count = 0
+                enemy_respawn_time = now
+                if new_enemies_number != 0:
+                    spawn = Spawn(spawn_centerxs[total_enemy_count])
+                    new_enemies_number -= 1
         if hit.type == "shield":
             if shield.alive():
                 shield.kill()
