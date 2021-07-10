@@ -1,4 +1,4 @@
-# add armor in life bar and new enemy classes
+# bug fix
 import pygame
 import random
 import os
@@ -672,11 +672,16 @@ class Tile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y
+        
+
+        
+
         if self.type == "STEEL":
             self.layer = 0
         if self.type == "BRICK":
             self.layer = 0
         if self.type == "GRASS":
+            # self.image.fill(RED)
             self.layer = 1
         if self.type == "WATER":
             self.subtype = 0
@@ -884,7 +889,7 @@ while running:
         before_start = True
     
     if level_won:
-        if level_number == 3:
+        if level_number == 30:
             level_number = 1
         else:
             level_number += 1
@@ -1129,39 +1134,44 @@ while running:
     
     # Проверка, не столкнулся ли игрок с элементом стены
     hits = pygame.sprite.spritecollide(player, tiles, False)
-    if hits:
-        for hit in hits:
-            if hit.type == "STEEL":
-                player.stop()
-            if hit.type == "BRICK":
-                player.stop()
-            if hit.type == "GRASS":
-                pass
-            if hit.type == "WATER":
-                player.stop()
-            if hit.type == "ICE":
-                pass
+    for hit in hits:
+        if hit.type == "STEEL":
+            player.stop()
             break
+        if hit.type == "BRICK":
+            player.stop()
+            break
+        if hit.type == "GRASS":
+            pass
+        if hit.type == "WATER":
+            player.stop()
+            break
+        if hit.type == "ICE":
+            pass
 
     # Проверка, не столкнулся ли противник с элементом стены
     hits = pygame.sprite.groupcollide(enemies, tiles, False, False)
     for hit in hits:
-        if hits[hit][0].type == "STEEL":
-            hit.stop()
-            hit.last_rotate = now
-            hit.rotate()
-        if hits[hit][0].type == "BRICK":
-            hit.stop()
-            hit.last_rotate = now
-            hit.rotate()
-        if hits[hit][0].type == "GRASS":
-            pass
-        if hits[hit][0].type == "WATER":
-            hit.stop()
-            hit.last_rotate = now
-            hit.rotate()
-        if hits[hit][0].type == "ICE":
-            pass
+        for tile in hits[hit]:
+            if tile.type == "STEEL":
+                hit.stop()
+                hit.last_rotate = now
+                hit.rotate()
+                break
+            if tile.type == "BRICK":
+                hit.stop()
+                hit.last_rotate = now
+                hit.rotate()
+                break
+            if tile.type == "GRASS":
+                pass
+            if tile.type == "WATER":
+                hit.stop()
+                hit.last_rotate = now
+                hit.rotate()
+                break
+            if tile.type == "ICE":
+                pass
         
     # Проверка столкновений игрока и улучшений
     hits = pygame.sprite.spritecollide(player, powerups, True)
