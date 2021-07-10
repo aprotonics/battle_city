@@ -1,4 +1,4 @@
-# add Gun powerup
+# add Time powerup
 import pygame
 import random
 import os
@@ -125,7 +125,7 @@ class Player(pygame.sprite.Sprite):
         self.last_shot = pygame.time.get_ticks()
         self.bullet_speed = 10
         self.bullet_strength = 1
-        self.life = 300
+        self.life = 150
         self.armor = 0
         self.lives = 3
         self.level = level
@@ -312,6 +312,7 @@ class Enemy(pygame.sprite.Sprite):
         self.last_shot = pygame.time.get_ticks()
         self.bullet_speed = 10
         self.bullet_strength = 1
+        self.frozen = False
 
         all_sprites.add(self)
         new_enemies.add(self)
@@ -399,20 +400,21 @@ class Enemy(pygame.sprite.Sprite):
             
 
     def update(self):
-        self.move()
-        
-        now = pygame.time.get_ticks()
-        if now - self.last_rotate > self.moving_time:
-            self.last_rotate = pygame.time.get_ticks()
-            self.stop()
-            self.rotate() 
+        if not self.frozen:
+            self.move()
+            
+            now = pygame.time.get_ticks()
+            if now - self.last_rotate > self.moving_time:
+                self.last_rotate = pygame.time.get_ticks()
+                self.stop()
+                self.rotate() 
 
-        # Проверка на выход за пределы экрана
-        if self.rect.right > WIDTH or self.rect.left < 0 or self.rect.bottom > HEIGHT or self.rect.top < 0:
-            self.stop()
-            self.rotate()
-        
-        self.shoot()
+            # Проверка на выход за пределы экрана
+            if self.rect.right > WIDTH or self.rect.left < 0 or self.rect.bottom > HEIGHT or self.rect.top < 0:
+                self.stop()
+                self.rotate()
+            
+            self.shoot()
         
 
 class Bullet(pygame.sprite.Sprite):
@@ -508,7 +510,7 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.type = random.choice(["gun"])
+        self.type = random.choice(["time"])
         self.image = powerup_images[self.type] # ["gun", "shield", "base", "levelup", "life", "time"]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -739,6 +741,9 @@ while running:
         current_enemy_count = 0
         total_enemy_count = 0
         new_enemies_number = 0
+        freeze_time = 0
+        formatted_freeze_time = "55"
+        frozen_time = False
 
         # Создание стен
         with open(f"levels/{level_number}.txt", "rt") as f:
@@ -799,7 +804,7 @@ while running:
         enemy_respawn_time = start_time
         last_enemy_hit_time = start_time
         last_player_hit_time = start_time
-        powerup_hit_time = start_time
+        powerup_hit_time = start_time 
         game_start_sound.play()
         all_sprites = pygame.sprite.Group()
         enemies = pygame.sprite.Group()
@@ -824,6 +829,9 @@ while running:
         current_enemy_count = 0
         total_enemy_count = 0
         new_enemies_number = 0
+        freeze_time = 0
+        formatted_freeze_time = ""
+        frozen_time = False
 
         # Создание стен
         with open(f"levels/{level_number}.txt", "rt") as f:
@@ -883,7 +891,7 @@ while running:
     ##### Обновление
     all_sprites.update()
     now = pygame.time.get_ticks()
-    now_time = get_time() 
+    formatted_now_time = get_time() 
 
     # Проверка, прошла ли 1 секунда после отображения очков
     if now - last_enemy_hit_time > 1000 and now - powerup_hit_time > 1000:
@@ -1084,7 +1092,17 @@ while running:
                 player.lives = 5
                 player.life = 100
         if hit.type == "time":
-            pass        
+            frozen_time = True
+            freeze_time = now
+            for enemy in enemies:
+                enemy.frozen = True 
+    
+    # Проверка, не прошло ли время заморозки противников
+    if frozen_time:
+        if now - freeze_time > 5000:
+            for enemy in enemies:
+                enemy.frozen = False
+            frozen_time = False
 
     # Проверка, не столкнулись ли противник и игрок
     hits = pygame.sprite.spritecollide(player, enemies, False)
@@ -1099,12 +1117,15 @@ while running:
         enemy.remove(enemies)        
         hits = pygame.sprite.spritecollide(enemy, enemies, False)
         for hit in hits:
-            enemy.stop()
-            hit.stop()
-            enemy.last_rotate = now
-            hit.last_rotate = now
-            enemy.reverse()            
-            hit.reverse()
+            if hit.frozen != True:
+                hit.stop()
+                hit.last_rotate = now
+                hit.reverse()
+            if enemy.frozen != True:
+                enemy.stop() 
+                enemy.last_rotate = now
+                enemy.reverse()            
+            
         enemy.add(enemies)
 
     # Проверка столкновений противников и spawns
@@ -1117,7 +1138,7 @@ while running:
     screen.fill(BLACK)
     all_sprites.draw(screen)
     layers.draw(screen)
-    draw_text(screen, WIDTH / 3, 5, str(now_time), 24)
+    draw_text(screen, WIDTH / 3, 5, str(formatted_now_time), 24)
     draw_text(screen, WIDTH / 3 * 2 - 25, 5, str(total_score), 24)
     draw_shield_bar(screen, 5, 10, player.life)
     draw_lives(screen, WIDTH - 30, 5, player.lives, player_mini_img)
