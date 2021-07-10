@@ -1,4 +1,4 @@
-# add water waves
+# bug fix
 import pygame
 import random
 import os
@@ -125,7 +125,7 @@ class Player(pygame.sprite.Sprite):
         self.last_shot = pygame.time.get_ticks()
         self.bullet_speed = 10
         self.bullet_strength = 1
-        self.life = 100
+        self.life = 300
         self.armor = 0
         self.lives = 3
         self.level = level
@@ -904,6 +904,12 @@ while running:
         if current_enemy_count == 1:
             enemy_respawn_time += hits_interval
             enemy = Enemy(spawn_centerxs[total_enemy + 1 - total_enemy_count])
+        current_enemy_count += 1
+
+    # Добавление последнего противника
+    if (now - enemy_respawn_time >= appearance_delay and total_enemy_count < 3 
+        and total_enemy_count != current_enemy_count):
+        enemy = Enemy(spawn_centerxs[total_enemy + 1 - total_enemy_count])
         current_enemy_count += 1
 
     # Проверка, не столкнулась ли пуля игрока с элементом стены
