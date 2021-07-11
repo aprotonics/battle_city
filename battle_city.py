@@ -1,4 +1,4 @@
-# add base
+# bug fix
 import pygame
 import random
 import os
@@ -108,7 +108,6 @@ pygame.display.set_caption("Battle city")
 clock = pygame.time.Clock()
 font_name = pygame.font.match_font("Arial")
 
-
 # настройка папки ассетов
 img_dir = os.path.join(os.path.dirname(__file__), "img")
 snd_dir = os.path.join(os.path.dirname(__file__), "snd")
@@ -149,7 +148,6 @@ class Player(pygame.sprite.Sprite):
         
         all_sprites.add(self)
         layers.add(self)
-        
     
     def rotate(self, direction):
         angle = 0
@@ -223,19 +221,14 @@ class Player(pygame.sprite.Sprite):
                 y = self.rect.centery
             player_bullet = PlayerBullet(x, y, self.direction, self.bullet_speed, self.bullet_strength)
             player_bullets.add(player_bullet)
-            
             shoot_sound.play()
- 
-    def upgrade_gun(self):
-        self.gun_start_time = pygame.time.get_ticks()
-        self.shoot_delay = 200 
         
     def hide(self):
         self.hidden = True
         self.hide_timer = pygame.time.get_ticks()
         self.rect.center = (WIDTH / 2 - 100, HEIGHT + 200)
 
-    def upgrade(self, center):
+    def upgrade(self, center, direction):
         self.level += 1
         if self.level >= 2:
             self.level = 2
@@ -244,6 +237,7 @@ class Player(pygame.sprite.Sprite):
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center
+        self.direction = direction
         self.life = 100
         if self.level == 1:
             self.shoot_delay = 250
@@ -254,6 +248,7 @@ class Player(pygame.sprite.Sprite):
             self.bullet_speed = 15
             self.armor = 150
             self.bullet_strength = 2
+        self.rotate(direction)
     
     def downgrade(self, center):
         self.level = 0
@@ -266,7 +261,6 @@ class Player(pygame.sprite.Sprite):
         self.bullet_speed = 10
         self.armor = 0
         self.bullet_strength = 1
-
 
     def update(self):
         # Показать, если скрыто
@@ -406,7 +400,6 @@ class Enemy(pygame.sprite.Sprite):
             enemy_bullet = EnemyBullet(x, y, self.direction, self.bullet_speed, self.bullet_strength)
             enemy_bullets.add(enemy_bullet)
             
-
     def update(self):
         if not self.frozen:
             self.move()
@@ -433,8 +426,7 @@ class NormalEnemy(Enemy):
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = centerx
-        self.rect.y = 0
-        
+        self.rect.y = 0  
         self.tank_type = "normal"
         self.speed = enemy_speed
         self.speedy = self.speed
@@ -452,7 +444,6 @@ class FastEnemy(Enemy):
         self.rect = self.image.get_rect()
         self.rect.centerx = centerx
         self.rect.y = 0
-        
         self.tank_type = "fast"
         self.speed = enemy_speed * 1.5
         self.speedy = self.speed
@@ -470,7 +461,6 @@ class EnhancedEnemy(Enemy):
         self.rect = self.image.get_rect()
         self.rect.centerx = centerx
         self.rect.y = 0
-
         self.tank_type = "enhanced"
         self.speed = enemy_speed
         self.speedy = self.speed
@@ -488,7 +478,6 @@ class HeavyEnemy(Enemy):
         self.rect = self.image.get_rect()
         self.rect.centerx = centerx
         self.rect.y = 0
-
         self.tank_type = "heavy"
         self.speed = enemy_speed
         self.speedy = self.speed
@@ -517,7 +506,6 @@ class Base(pygame.sprite.Sprite):
             self.rect = self.image.get_rect()
             self.rect.x = 300
             self.rect.y = 600
-
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -613,7 +601,7 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.type = random.choice(["gun", "shield", "base", "levelup", "life", "time"])
+        self.type = random.choice(["levelup"])
         self.image = powerup_images[self.type] # ["gun", "shield", "base", "levelup", "life", "time"]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -694,17 +682,13 @@ class Tile(pygame.sprite.Sprite):
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = self.x
-        self.rect.y = self.y
-        
-
-        
+        self.rect.y = self.y     
 
         if self.type == "STEEL":
             self.layer = 0
         if self.type == "BRICK":
             self.layer = 0
         if self.type == "GRASS":
-            # self.image.fill(RED)
             self.layer = 1
         if self.type == "WATER":
             self.subtype = 0
@@ -1027,7 +1011,7 @@ while running:
     now = pygame.time.get_ticks()
     formatted_now_time = get_time() 
 
-    # Проверка, прошла ли 1 секунда после отображения очков
+    # Проверка, прошла ли 1 секунда после появления локальных очков
     if now - last_enemy_hit_time > 1000 and now - powerup_hit_time > 1000:
         current_score = ""
 
@@ -1123,6 +1107,7 @@ while running:
                 player.armor = 0
             elif player.armor == 0:
                 player.life -= 100
+
             if player.life > 0:
                 hit_sound.play()
             else:
@@ -1142,13 +1127,25 @@ while running:
         hits_interval = now - last_enemy_hit_time
         last_enemy_hit_time = now
 
-        if hit.armor > 100 * hits[hit][0].strength:
-            hit.armor -= 100 * hits[hit][0].strength        # Сила пули
-        elif hit.armor > 100 * (hits[hit][0].strength - 1):
-            hit.life -= 100 * hits[hit][0].strength - hit.armor
-            hit.armor = 0
-        elif hit.armor == 0:
-            hit.life -= 100
+        if hits[hit][0].strength == 2:
+            if hit.armor > 200:
+                 hit.armor -= 200
+            elif hit.armor > 100:
+                hit.life -= 200 - hit.armor
+                hit.armor = 0
+            elif hit.armor <= 100:
+                hit.armor = 0
+                hit.life = 0
+        
+        if hits[hit][0].strength == 1:
+            if hit.armor > 100:
+                hit.armor -= 100
+            elif hit.armor > 0:
+                hit.life -= 100 - hit.armor
+                hit.armor = 0
+            elif hit.armor == 0:
+                hit.life -= 100
+
         if hit.life > 0:
             hit_sound.play()
         else:                       # Если противник убит
@@ -1169,7 +1166,7 @@ while running:
             hit.kill()  
             explosion_sound.play()
             
-            if random.random() > 0.8:
+            if random.random() > 0.1:
                 powerup = Powerup(hit.rect.center)     
     # Если противники закончились, уровень пройден
     if remaining_enemy_count == 0 and now - last_enemy_hit_time > 2000 and now - powerup_hit_time > 2000:
@@ -1245,7 +1242,7 @@ while running:
         if hit.type == "base":
             pass
         if hit.type == "levelup":
-            player.upgrade(player.rect.center)
+            player.upgrade(player.rect.center, player.direction)
         if hit.type == "life":
             player.lives += 1
             if player.lives >= 5:
@@ -1301,22 +1298,29 @@ while running:
     
     # Проверка столкновений пули игрока и базы
     hits1 = pygame.sprite.spritecollide(base, player_bullets, True)
+    
     # Проверка столкновений пули противников и базы
     hits2 = pygame.sprite.spritecollide(base, enemy_bullets, True)
     if hits1 or hits2:
-        explosion = Explosion(base.rect.center)
-        base.destroyed = True
-        base.destroyed_time = now
-        game_over_sound.play()
-        game_over_string = "GAME OVER"
-        game_over_string_centerx = base.rect.centerx
-        game_over_string_top = base.rect.top
+        if not base.destroyed:
+            explosion = Explosion(base.rect.center)
+            base.destroyed = True
+            base.destroyed_time = now
+            game_over_sound.play()
+            game_over_string = "GAME OVER"
+            game_over_string_centerx = base.rect.centerx
+            game_over_string_top = base.rect.top
     
-    # Если база уничтожена, игра окончена
-    if base.destroyed == True and not before_start:
+    # Если база уничтожена, показать строку "GAME OVER"
+    if base.destroyed and not before_start:
         if game_over_string_top > HEIGHT / 2:
             game_over_string_top -= 3
-    if base.destroyed == True and now - base.destroyed_time > 3000 and not before_start:
+    
+    # Если база уничтожена, игра окончена
+    if base.destroyed and now - base.destroyed_time > 3000 and not before_start:
+        player.kill()
+        player_level = 0
+        player_image = player_images[0]
         game_over = True
     
     ##### Визуализация (сборка)
