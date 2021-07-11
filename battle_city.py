@@ -1,4 +1,4 @@
-# bug fix
+# add base
 import pygame
 import random
 import os
@@ -20,9 +20,9 @@ def get_time():
     return current_time
 
 
-def draw_text(surf, x, y, text, size):
+def draw_text(surf, x, y, text, size, color=(255, 255, 255)):
     font = pygame.font.Font(font_name, size)
-    text_surface = font.render(text, True, WHITE)
+    text_surface = font.render(text, True, color)
     text_rect = text_surface.get_rect()
     text_rect.midtop = (x, y)
     surf.blit(text_surface, text_rect)
@@ -121,7 +121,7 @@ class Player(pygame.sprite.Sprite):
         self.image = self.first_image
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
-        self.rect.centerx = WIDTH / 2
+        self.rect.centerx = WIDTH / 2 - 100
         self.rect.bottom = HEIGHT
         self.direction = "up"
         self.speedx = 0
@@ -233,7 +233,7 @@ class Player(pygame.sprite.Sprite):
     def hide(self):
         self.hidden = True
         self.hide_timer = pygame.time.get_ticks()
-        self.rect.center = (WIDTH / 2, HEIGHT + 200)
+        self.rect.center = (WIDTH / 2 - 100, HEIGHT + 200)
 
     def upgrade(self, center):
         self.level += 1
@@ -275,7 +275,7 @@ class Player(pygame.sprite.Sprite):
             self.image = player_images[0]
             self.image.set_colorkey(BLACK)
             self.rect = self.image.get_rect()
-            self.rect.centerx = WIDTH / 2
+            self.rect.centerx = WIDTH / 2 - 100
             self.rect.bottom = HEIGHT
             self.direction = "up"
             self.life = 100
@@ -497,6 +497,29 @@ class HeavyEnemy(Enemy):
         self.armor = 150
     
 
+class Base(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = base_images[0]
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.x = 300
+        self.rect.y = 600
+        self.destroyed = False
+        self.destroyed_time = None
+
+        all_sprites.add(self)
+
+    def update(self):
+        if self.destroyed:
+            self.image = base_images[1]
+            self.image.set_colorkey(BLACK)
+            self.rect = self.image.get_rect()
+            self.rect.x = 300
+            self.rect.y = 600
+
+
+
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, centerx, centery, direction, speed=10, strength=1):
         pygame.sprite.Sprite.__init__(self)
@@ -590,7 +613,7 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.type = random.choice(["levelup"])
+        self.type = random.choice(["gun", "shield", "base", "levelup", "life", "time"])
         self.image = powerup_images[self.type] # ["gun", "shield", "base", "levelup", "life", "time"]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -739,6 +762,13 @@ for i in range(1, 5):
 enemy_images.append(blue_enemy_images)
 enemy_images.append(red_enemy_images)
 
+base_images = []
+for i in range(1, 3):
+    filename = f"base_0{i}.png"
+    img = pygame.image.load(os.path.join(img_dir, filename)).convert()
+    img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+    base_images.append(img)
+
 bullet_img = pygame.Surface((7, 14))
 
 explosion_anim = []
@@ -787,6 +817,7 @@ for i in range(len(tile_types)):
 game_start_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gamestart.ogg"))
 shoot_sound = pygame.mixer.Sound(os.path.join(snd_dir, "fire.ogg"))
 powerup_sound = pygame.mixer.Sound(os.path.join(snd_dir, "powerup.wav"))
+powerup_sound.set_volume(0.5)
 hit_sound = pygame.mixer.Sound(os.path.join(snd_dir, "hit.wav"))
 explosion_sound = pygame.mixer.Sound(os.path.join(snd_dir, "explosion.ogg"))
 game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
@@ -824,7 +855,8 @@ while running:
         shields = pygame.sprite.Group()
         layers = pygame.sprite.LayeredUpdates()
         player = Player(player_level, player_image)
-        shield = Shield(player.rect.center)        
+        shield = Shield(player.rect.center)     
+        base = Base()   
         
         current_score = ""
         current_score_centerx = -100
@@ -837,10 +869,13 @@ while running:
         total_enemy_count = 0
         new_enemies_number = 0
         freeze_time = 0
-        formatted_freeze_time = "55"
         frozen_time = False
+        game_over_string = ""
+        game_over_string_centerx = -100
+        game_over_string_top = -100
 
         # Создание стен
+        s = TILE_SIZE
         with open(f"levels/{level_number}.txt", "rt") as f:
             lines = f.readlines()
         for i in range(13):
@@ -848,30 +883,30 @@ while running:
                 if lines[i][j] ==  "0":
                     pass
                 elif lines[i][j] ==  "1":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "STEEL")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "STEEL")
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "STEEL")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "STEEL")
+                    tile = Tile(j * s, i * s, "STEEL")
+                    tile = Tile(j * s + s / 2, i * s, "STEEL")
+                    tile = Tile(j * s, i * s + s / 2, "STEEL")
+                    tile = Tile(j * s + s / 2, i * s + s / 2, "STEEL")
                 elif lines[i][j] ==  "2":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "BRICK")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "BRICK")
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "BRICK")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "BRICK")
+                    tile = Tile(j * s, i * s, "BRICK")
+                    tile = Tile(j * s + s / 2, i * s, "BRICK")
+                    tile = Tile(j * s, i * s + s / 2, "BRICK")
+                    tile = Tile(j * s + s / 2, i * s + s / 2, "BRICK")
                 elif lines[i][j] ==  "3":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "GRASS")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "GRASS")
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "GRASS")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "GRASS")
+                    tile = Tile(j * s, i * s, "GRASS")
+                    tile = Tile(j * s + s / 2, i * s, "GRASS")
+                    tile = Tile(j * s, i * s + s / 2, "GRASS")
+                    tile = Tile(j * s + s / 2, i * s + s / 2, "GRASS")
                 elif lines[i][j] ==  "4":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "WATER")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "WATER")
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "WATER")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "WATER")
+                    tile = Tile(j * s, i * s, "WATER")
+                    tile = Tile(j * s + s / 2, i * s, "WATER")
+                    tile = Tile(j * s, i * s + s / 2, "WATER")
+                    tile = Tile(j * s + s / 2, i * s + s / 2, "WATER")
                 elif lines[i][j] ==  "5":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "ICE")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "ICE")
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "ICE")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "ICE")
+                    tile = Tile(j * s, i * s, "ICE")
+                    tile = Tile(j * s + s / 2, i * s, "ICE")
+                    tile = Tile(j * s, i * s + s / 2, "ICE")
+                    tile = Tile(j * s + s / 2, i * s + s / 2, "ICE")
 
         # Создание spawn
         spawn_centerxs = ["" for i in range(total_enemy)]
@@ -915,6 +950,7 @@ while running:
         player.level = player_level
         player.first_image = player_image
         shield = Shield(player.rect.center)
+        base = Base()
         
         current_score = ""
         current_score_centerx = -100
@@ -925,10 +961,13 @@ while running:
         total_enemy_count = 0
         new_enemies_number = 0
         freeze_time = 0
-        formatted_freeze_time = ""
         frozen_time = False
+        game_over_string = ""
+        game_over_string_centerx = -100
+        game_over_string_top = -100
 
         # Создание стен
+        s = TILE_SIZE
         with open(f"levels/{level_number}.txt", "rt") as f:
             lines = f.readlines()
         for i in range(13):
@@ -936,30 +975,30 @@ while running:
                 if lines[i][j] ==  "0":
                     pass
                 elif lines[i][j] ==  "1":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "STEEL")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "STEEL")
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "STEEL")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "STEEL")
+                    tile = Tile(j * s, i * s, "STEEL")
+                    tile = Tile(j * s + s / 2, i * s, "STEEL")
+                    tile = Tile(j * s, i * s + s / 2, "STEEL")
+                    tile = Tile(j * s + s / 2, i * s + s / 2, "STEEL")
                 elif lines[i][j] ==  "2":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "BRICK")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "BRICK")
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "BRICK")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "BRICK")
+                    tile = Tile(j * s, i * s, "BRICK")
+                    tile = Tile(j * s + s / 2, i * s, "BRICK")
+                    tile = Tile(j * s, i * s + s / 2, "BRICK")
+                    tile = Tile(j * s + s / 2, i * s + s / 2, "BRICK")
                 elif lines[i][j] ==  "3":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "GRASS")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "GRASS")
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "GRASS")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "GRASS")
+                    tile = Tile(j * s, i * s, "GRASS")
+                    tile = Tile(j * s + s / 2, i * s, "GRASS")
+                    tile = Tile(j * s, i * s + s / 2, "GRASS")
+                    tile = Tile(j * s + s / 2, i * s + s / 2, "GRASS")
                 elif lines[i][j] ==  "4":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "WATER")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "WATER")
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "WATER")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "WATER")
+                    tile = Tile(j * s, i * s, "WATER")
+                    tile = Tile(j * s + s / 2, i * s, "WATER")
+                    tile = Tile(j * s, i * s + s / 2, "WATER")
+                    tile = Tile(j * s + s / 2, i * s + s / 2, "WATER")
                 elif lines[i][j] ==  "5":
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE, "ICE")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE, "ICE")
-                    tile = Tile(j * TILE_SIZE, i * TILE_SIZE + TILE_SIZE / 2, "ICE")
-                    tile = Tile(j * TILE_SIZE + TILE_SIZE / 2, i * TILE_SIZE + TILE_SIZE / 2, "ICE")
+                    tile = Tile(j * s, i * s, "ICE")
+                    tile = Tile(j * s + s / 2, i * s, "ICE")
+                    tile = Tile(j * s, i * s + s / 2, "ICE")
+                    tile = Tile(j * s + s / 2, i * s + s / 2, "ICE")
 
         # Создание spawn
         spawn_centerxs = ["" for i in range(total_enemy)]
@@ -1027,7 +1066,13 @@ while running:
         while new_enemies_number != 0: # После применения улучшения Gun
             spawn = Spawn(spawn_centerxs[total_enemy_count])
             new_enemies_number -= 1
-
+    
+    # Проверка столкновений противников и spawns
+    hits = pygame.sprite.groupcollide(new_enemies, spawns, False, True)
+    for hit in hits:
+        hit.remove(new_enemies)
+        hit.add(enemies)
+    
     # Проверка, не столкнулась ли пуля игрока с элементом стены
     hits = pygame.sprite.groupcollide(tiles, player_bullets, False, False)
     for hit in hits:
@@ -1124,9 +1169,9 @@ while running:
             hit.kill()  
             explosion_sound.play()
             
-            if random.random() > 0.1:
+            if random.random() > 0.8:
                 powerup = Powerup(hit.rect.center)     
-    # Если противники закончились, игра окончена
+    # Если противники закончились, уровень пройден
     if remaining_enemy_count == 0 and now - last_enemy_hit_time > 2000 and now - powerup_hit_time > 2000:
         player_level = player.level
         player_image = player.first_image
@@ -1243,21 +1288,47 @@ while running:
             
         enemy.add(enemies)
 
-    # Проверка столкновений противников и spawns
-    hits = pygame.sprite.groupcollide(new_enemies, spawns, False, True)
+    # Проверка столкновений игрока и базы
+    if pygame.sprite.collide_rect(player, base):
+        player.stop()
+    
+    # Проверка столкновений противников и базы
+    hits = pygame.sprite.spritecollide(base, enemies, False)
     for hit in hits:
-        hit.remove(new_enemies)
-        hit.add(enemies)
-
+        hit.stop()
+        hit.last_rotate = now
+        hit.rotate()
+    
+    # Проверка столкновений пули игрока и базы
+    hits1 = pygame.sprite.spritecollide(base, player_bullets, True)
+    # Проверка столкновений пули противников и базы
+    hits2 = pygame.sprite.spritecollide(base, enemy_bullets, True)
+    if hits1 or hits2:
+        explosion = Explosion(base.rect.center)
+        base.destroyed = True
+        base.destroyed_time = now
+        game_over_sound.play()
+        game_over_string = "GAME OVER"
+        game_over_string_centerx = base.rect.centerx
+        game_over_string_top = base.rect.top
+    
+    # Если база уничтожена, игра окончена
+    if base.destroyed == True and not before_start:
+        if game_over_string_top > HEIGHT / 2:
+            game_over_string_top -= 3
+    if base.destroyed == True and now - base.destroyed_time > 3000 and not before_start:
+        game_over = True
+    
     ##### Визуализация (сборка)
     screen.fill(BLACK)
     all_sprites.draw(screen)
     layers.draw(screen)
-    draw_text(screen, WIDTH / 3, 5, str(formatted_now_time), 24)
-    draw_text(screen, WIDTH / 3 * 2 - 25, 5, str(total_score), 24)
-    draw_life_bar(screen, 5, 10, player.life, player.armor)
-    draw_lives(screen, WIDTH - 30, 5, player.lives, player_mini_img)
-    draw_text(screen, current_score_centerx, current_score_top, str(current_score), 18)
+    draw_text(screen, WIDTH / 3, 5, str(formatted_now_time), 24)                        # Время
+    draw_text(screen, WIDTH / 3 * 2 - 25, 5, str(total_score), 24)                      # Очки
+    draw_life_bar(screen, 5, 10, player.life, player.armor)                             # Уровень жизни
+    draw_lives(screen, WIDTH - 30, 5, player.lives, player_mini_img)                    # Количество жизней
+    draw_text(screen, current_score_centerx, current_score_top, str(current_score), 18) # Локальные очки
+    draw_text(screen, game_over_string_centerx, game_over_string_top, game_over_string, 45)   # "GAME OVER"
 
     # после отрисовки всего, переворачиваем экран
     pygame.display.flip()
