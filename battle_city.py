@@ -1,4 +1,4 @@
-# bug fix
+# add sound Exception handling
 import pygame
 import random
 import os
@@ -102,7 +102,11 @@ YELLOW = (255, 255, 0)
 
 # создаем игру и окно
 pygame.init()
-pygame.mixer.init() # для звука
+try:
+    pygame.mixer.init() # для звука
+    # pygame.mixer.quit()
+except Exception:
+    pass
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Battle city")
 clock = pygame.time.Clock()
@@ -114,7 +118,7 @@ snd_dir = os.path.join(os.path.dirname(__file__), "snd")
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, level, image):
+    def __init__(self, image, level=0, lives=3):
         pygame.sprite.Sprite.__init__(self)
         self.first_image = image
         self.image = self.first_image
@@ -131,7 +135,7 @@ class Player(pygame.sprite.Sprite):
         self.bullet_strength = 1
         self.life = 100
         self.armor = 0
-        self.lives = 3
+        self.lives = lives
         self.level = level
         self.hidden = False
         self.hide_timer = pygame.time.get_ticks()
@@ -221,7 +225,10 @@ class Player(pygame.sprite.Sprite):
                 y = self.rect.centery
             player_bullet = PlayerBullet(x, y, self.direction, self.bullet_speed, self.bullet_strength)
             player_bullets.add(player_bullet)
-            shoot_sound.play()
+            try:
+                shoot_sound.play()
+            except NameError:
+                pass
         
     def hide(self):
         self.hidden = True
@@ -601,7 +608,7 @@ class Explosion(pygame.sprite.Sprite):
 class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.type = random.choice(["levelup"])
+        self.type = random.choice(["gun", "shield", "base", "levelup", "life", "time"])
         self.image = powerup_images[self.type] # ["gun", "shield", "base", "levelup", "life", "time"]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -798,21 +805,25 @@ for i in range(len(tile_types)):
     tile_images[tile_types[i]] = img
 
 # Загрузка звуков
-game_start_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gamestart.ogg"))
-shoot_sound = pygame.mixer.Sound(os.path.join(snd_dir, "fire.ogg"))
-powerup_sound = pygame.mixer.Sound(os.path.join(snd_dir, "powerup.wav"))
-powerup_sound.set_volume(0.5)
-hit_sound = pygame.mixer.Sound(os.path.join(snd_dir, "hit.wav"))
-explosion_sound = pygame.mixer.Sound(os.path.join(snd_dir, "explosion.ogg"))
-game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
+try:
+    game_start_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gamestart.ogg"))
+    shoot_sound = pygame.mixer.Sound(os.path.join(snd_dir, "fire.ogg"))
+    powerup_sound = pygame.mixer.Sound(os.path.join(snd_dir, "powerup.wav"))
+    powerup_sound.set_volume(0.5)
+    hit_sound = pygame.mixer.Sound(os.path.join(snd_dir, "hit.wav"))
+    explosion_sound = pygame.mixer.Sound(os.path.join(snd_dir, "explosion.ogg"))
+    game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
+except RuntimeError:
+    print("Sound_Error")
 
 
 # Цикл игры
 appearance_delay = 1500
 player_speed = 4
 enemy_speed = 4
-player_level = 0
 player_image = player_images[0]
+player_level = 0
+player_lives = 3
 before_start = True
 level_won = False
 running = True
@@ -826,7 +837,10 @@ while running:
         last_enemy_hit_time = start_time
         last_player_hit_time = start_time
         powerup_hit_time = start_time
-        game_start_sound.play()
+        try:
+            game_start_sound.play()
+        except NameError:
+            pass
         all_sprites = pygame.sprite.Group()
         enemies = pygame.sprite.Group()
         new_enemies = pygame.sprite.Group()
@@ -838,7 +852,7 @@ while running:
         spawns = pygame.sprite.Group()
         shields = pygame.sprite.Group()
         layers = pygame.sprite.LayeredUpdates()
-        player = Player(player_level, player_image)
+        player = Player(player_image)
         shield = Shield(player.rect.center)     
         base = Base()   
         
@@ -919,7 +933,10 @@ while running:
         last_enemy_hit_time = start_time
         last_player_hit_time = start_time
         powerup_hit_time = start_time 
-        game_start_sound.play()
+        try:
+            game_start_sound.play()
+        except NameError:
+            pass
         all_sprites = pygame.sprite.Group()
         enemies = pygame.sprite.Group()
         new_enemies = pygame.sprite.Group()
@@ -930,7 +947,7 @@ while running:
         spawns = pygame.sprite.Group()
         shields = pygame.sprite.Group()
         layers = pygame.sprite.LayeredUpdates()
-        player = Player(player_level, player_image)
+        player = Player(player_image, player_level, player_lives)
         player.level = player_level
         player.first_image = player_image
         shield = Shield(player.rect.center)
@@ -1109,16 +1126,25 @@ while running:
                 player.life -= 100
 
             if player.life > 0:
-                hit_sound.play()
+                try:
+                    hit_sound.play()
+                except NameError:
+                    pass
             else:
                 explosion = Explosion(hit.rect.center)
                 player.hide()
                 player.lives -= 1
                 player.downgrade(player.rect.center)
-                explosion_sound.play()
+                try:
+                    explosion_sound.play()
+                except NameError:
+                    pass
     # Если игрок умер, игра окончена
     if player.lives == 0 and now - last_player_hit_time > 2000 and not before_start:
-        game_over_sound.play()
+        try:
+            game_over_sound.play()
+        except NameError:
+            pass
         game_over = True
     
     # Проверка, не ударила ли пуля противника
@@ -1147,7 +1173,10 @@ while running:
                 hit.life -= 100
 
         if hit.life > 0:
-            hit_sound.play()
+            try:
+                hit_sound.play()
+            except NameError:
+                pass
         else:                       # Если противник убит
             current_score = 100
             current_score_centerx = hit.rect.centerx + 20
@@ -1164,14 +1193,18 @@ while running:
             total_score += 100
             explosion = Explosion(hit.rect.center)
             hit.kill()  
-            explosion_sound.play()
+            try:
+                explosion_sound.play()
+            except NameError:
+                pass
             
-            if random.random() > 0.1:
+            if random.random() > 0.8:
                 powerup = Powerup(hit.rect.center)     
     # Если противники закончились, уровень пройден
     if remaining_enemy_count == 0 and now - last_enemy_hit_time > 2000 and now - powerup_hit_time > 2000:
-        player_level = player.level
         player_image = player.first_image
+        player_level = player.level
+        player_lives = player.lives
         level_won = True
     
     # Проверка, не столкнулся ли игрок с элементом стены
@@ -1223,7 +1256,10 @@ while running:
         current_score_centerx = hit.rect.centerx
         current_score_top = hit.rect.top
         total_score += 100
-        powerup_sound.play()
+        try:
+            powerup_sound.play()
+        except NameError:
+            pass
         if hit.type == "gun":
             if enemies:
                 new_enemies_number = remaining_enemy_count - current_enemy_count # Количество противников,
@@ -1306,7 +1342,10 @@ while running:
             explosion = Explosion(base.rect.center)
             base.destroyed = True
             base.destroyed_time = now
-            game_over_sound.play()
+            try:
+                game_over_sound.play()
+            except NameError:
+                pass
             game_over_string = "GAME OVER"
             game_over_string_centerx = base.rect.centerx
             game_over_string_top = base.rect.top
