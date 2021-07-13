@@ -1,4 +1,4 @@
-# add sound Exception handling
+# add base powerup
 import pygame
 import random
 import os
@@ -866,8 +866,11 @@ while running:
         current_enemy_count = 0
         total_enemy_count = 0
         new_enemies_number = 0
+        base_shield_start_time = 0
+        base_shield = False
         freeze_time = 0
         frozen_time = False
+        
         game_over_string = ""
         game_over_string_centerx = -100
         game_over_string_top = -100
@@ -961,6 +964,8 @@ while running:
         current_enemy_count = 0
         total_enemy_count = 0
         new_enemies_number = 0
+        base_shield_start_time = 0
+        base_shield = False
         freeze_time = 0
         frozen_time = False
         game_over_string = ""
@@ -1276,7 +1281,67 @@ while running:
                 shield.kill()
             shield = Shield(player.rect.center)
         if hit.type == "base":
-            pass
+            base_shield = True
+            base_shield_start_time = now
+
+            for tile in tiles:
+                if 5 * 50 <= tile.rect.x < 6 * 50 and 11 * 50 <= tile.rect.y < 12 * 50:
+                    tile.kill()
+                if 6 * 50 <= tile.rect.x < 7 * 50 and 11 * 50 <= tile.rect.y < 12 * 50:
+                    tile.kill()
+                if 7 * 50 <= tile.rect.x < 8 * 50 and 11 * 50 <= tile.rect.y < 12 * 50:
+                    tile.kill()
+                if 5 * 50 <= tile.rect.x < 6 * 50 and 12 * 50 <= tile.rect.y < 13 * 50:
+                    tile.kill()
+                if 7 * 50 <= tile.rect.x < 8 * 50 and 12 * 50 <= tile.rect.y < 13 * 50:
+                    tile.kill()
+
+            base_shield_tiles = pygame.sprite.Group()
+            tile = Tile(base.rect.x - 50, base.rect.y - 50, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x - 25, base.rect.y - 50, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x - 50, base.rect.y - 25, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x - 25, base.rect.y - 25, "STEEL")
+            base_shield_tiles.add(tile)
+
+            tile = Tile(base.rect.x, base.rect.y - 50, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x + 25, base.rect.y - 50, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x, base.rect.y - 25, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x + 25, base.rect.y - 25, "STEEL")
+            base_shield_tiles.add(tile)
+
+            tile = Tile(base.rect.x + 50, base.rect.y - 50, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x + 75, base.rect.y - 50, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x + 50, base.rect.y - 25, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x + 75, base.rect.y - 25, "STEEL")
+            base_shield_tiles.add(tile)
+
+            tile = Tile(base.rect.x - 50, base.rect.y, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x - 25, base.rect.y, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x - 50, base.rect.y + 25, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x - 25, base.rect.y + 25, "STEEL")
+            base_shield_tiles.add(tile)
+
+            tile = Tile(base.rect.x + 50, base.rect.y, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x + 75, base.rect.y, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x + 50, base.rect.y + 25, "STEEL")
+            base_shield_tiles.add(tile)
+            tile = Tile(base.rect.x + 75, base.rect.y + 25, "STEEL")
+            base_shield_tiles.add(tile)
+
         if hit.type == "levelup":
             player.upgrade(player.rect.center, player.direction)
         if hit.type == "life":
@@ -1290,6 +1355,39 @@ while running:
             for enemy in enemies:
                 enemy.frozen = True 
     
+    # Проверка, не прошло ли время действия защиты базы
+    if base_shield:
+        if now - base_shield_start_time > 2000:
+            for tile in base_shield_tiles:
+                tile.kill()
+            
+            base_shield = False
+            
+            tile = Tile(base.rect.x - 50, base.rect.y - 50, "BRICK")
+            tile = Tile(base.rect.x - 25, base.rect.y - 50, "BRICK")
+            tile = Tile(base.rect.x - 50, base.rect.y - 25, "BRICK")
+            tile = Tile(base.rect.x - 25, base.rect.y - 25, "BRICK")
+
+            tile = Tile(base.rect.x, base.rect.y - 50, "BRICK")
+            tile = Tile(base.rect.x + 25, base.rect.y - 50, "BRICK")
+            tile = Tile(base.rect.x, base.rect.y - 25, "BRICK")
+            tile = Tile(base.rect.x + 25, base.rect.y - 25, "BRICK")
+
+            tile = Tile(base.rect.x + 50, base.rect.y - 50, "BRICK")
+            tile = Tile(base.rect.x + 75, base.rect.y - 50, "BRICK")
+            tile = Tile(base.rect.x + 50, base.rect.y - 25, "BRICK")
+            tile = Tile(base.rect.x + 75, base.rect.y - 25, "BRICK")
+
+            tile = Tile(base.rect.x - 50, base.rect.y, "BRICK")
+            tile = Tile(base.rect.x - 25, base.rect.y, "BRICK")
+            tile = Tile(base.rect.x - 50, base.rect.y + 25, "BRICK")
+            tile = Tile(base.rect.x - 25, base.rect.y + 25, "BRICK")
+
+            tile = Tile(base.rect.x + 50, base.rect.y, "BRICK")
+            tile = Tile(base.rect.x + 75, base.rect.y, "BRICK")
+            tile = Tile(base.rect.x + 50, base.rect.y + 25, "BRICK")
+            tile = Tile(base.rect.x + 75, base.rect.y + 25, "BRICK")
+
     # Проверка, не прошло ли время заморозки противников
     if frozen_time:
         if now - freeze_time > 5000:
