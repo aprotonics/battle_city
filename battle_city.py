@@ -4,6 +4,7 @@ import os
 import math
 from player import Player
 from mob import Enemy, NormalEnemy, FastEnemy, EnhancedEnemy, HeavyEnemy
+import collisions
 
 
 def get_time():
@@ -541,11 +542,12 @@ while running:
         current_score_top = -100
         level_number = 1
         total_score = 0
-        total_enemy = 5
-        remaining_enemy_count = total_enemy
-        current_enemy_count = 0
-        total_enemy_count = 0
-        new_enemies_number = 0
+        total_enemy = 5         # Количество противников на весь уровень
+        remaining_enemy_count = total_enemy # Оставшееся количество противников
+        current_enemy_count = 0 # Текущее количество противников на карте
+        total_enemy_count = 0 # Общее количество появившихся противников
+        new_enemies_number = 0 # Количество противников, которое нужно добавить после применения улучшения Gun
+        hits_interval = 0
         base_shield_start_time = 0
         base_shield = False
         freeze_time = 0
@@ -623,6 +625,7 @@ while running:
         current_enemy_count = 0
         total_enemy_count = 0
         new_enemies_number = 0
+        hits_interval = 0
         base_shield_start_time = 0
         base_shield = False
         freeze_time = 0
@@ -670,11 +673,7 @@ while running:
     all_sprites.update()
     now = pygame.time.get_ticks()
     formatted_now_time = get_time() 
-
-    # Проверка, прошла ли 1 секунда после появления локальных очков
-    if now - last_enemy_hit_time > 1000 and now - powerup_hit_time > 1000:
-        current_score = ""
-
+    
     # Добавление первых противников и spawns
     enemies_lst = [NormalEnemy, FastEnemy, EnhancedEnemy, HeavyEnemy] # Список подклассов противника
     if total_enemy_count < 3 and now - enemy_respawn_time >= appearance_delay:
@@ -711,80 +710,12 @@ while running:
             spawn = Spawn(spawn_centerxs[total_enemy_count])
             new_enemies_number -= 1
     
-    # Проверка столкновений противников и spawns
-    hits = pygame.sprite.groupcollide(new_enemies, spawns, False, True)
-    for hit in hits:
-        hit.remove(new_enemies)
-        hit.add(enemies)
-    
-    # Проверка столкновений пули противника и пули игрока
-    hits = pygame.sprite.groupcollide(player_bullets, enemy_bullets, True, True)
+    collisions.collide_test()
 
-    # Проверка столкновений пули игрока с элементом стены
-    hits = pygame.sprite.groupcollide(tiles, player_bullets, False, False)
-    for hit in hits:
-        if hit.type == "STEEL":
-            if hits[hit][0].strength == 2:
-                hit.kill()
-            hits[hit][0].kill() # убрать пулю
-        if hit.type == "BRICK":
-            hit.kill() # убрать элементы стены
-            hits[hit][0].kill() # убрать пулю
-        if hit.type == "GRASS":
-            pass
-        if hit.type == "WATER":
-            pass
-        if hit.type == "ICE":
-            pass
+    # Если прошла ли 1 секунда после появления локальных очков
+    if now - last_enemy_hit_time > 1000 and now - powerup_hit_time > 1000:
+        current_score = ""
 
-    # Проверка столкновений пули противника с элементом стены
-    hits = pygame.sprite.groupcollide(tiles, enemy_bullets, False, False)
-    for hit in hits:
-        if hit.type == "STEEL":
-            if hits[hit][0].strength == 2:
-                hit.kill()
-            hits[hit][0].kill() # убрать пулю
-        if hit.type == "BRICK":
-            hit.kill() # убрать элементы стены
-            hits[hit][0].kill() # убрать пулю
-        if hit.type == "GRASS":
-            pass
-        if hit.type == "WATER":
-            pass
-        if hit.type == "ICE":
-            pass
-
-    # Проверка, не ударила ли пуля щит
-    for shield in shields:
-        hits = pygame.sprite.spritecollide(shield, enemy_bullets, True)
-
-    # Проверка столкновений пули противника и игрока
-    if not shield.alive():
-        hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
-        for hit in hits:
-            last_player_hit_time = now
-            if player.armor > 100:
-                player.armor -= 100
-            elif player.armor > 0:
-                player.life -= 100 - player.armor
-                player.armor = 0
-            elif player.armor == 0:
-                player.life -= 100
-
-            if player.life > 0:
-                try:
-                    hit_sound.play()
-                except NameError:
-                    pass
-            else:
-                explosion = Explosion(hit.rect.center)
-                player.hide()
-                player.lives -= 1
-                player.downgrade(player.rect.center)
-                try:
-                    explosion_sound.play()
-                except NameError:
-                    pass
     # Если игрок умер, игра окончена
     if player.lives == 0 and now - last_player_hit_time > 2000 and not before_start:
         try:
@@ -792,215 +723,26 @@ while running:
         except NameError:
             pass
         game_over = True
-    
-    # Проверка столкновений пули игрока и противника
-    hits = pygame.sprite.groupcollide(enemies, player_bullets, False, True)
-    for hit in hits:
-        hits_interval = now - last_enemy_hit_time
-        last_enemy_hit_time = now
 
-        if hits[hit][0].strength == 2:
-            if hit.armor > 200:
-                 hit.armor -= 200
-            elif hit.armor > 100:
-                hit.life -= 200 - hit.armor
-                hit.armor = 0
-            elif hit.armor <= 100:
-                hit.armor = 0
-                hit.life = 0
-        
-        if hits[hit][0].strength == 1:
-            if hit.armor > 100:
-                hit.armor -= 100
-            elif hit.armor > 0:
-                hit.life -= 100 - hit.armor
-                hit.armor = 0
-            elif hit.armor == 0:
-                hit.life -= 100
-
-        if hit.life > 0:
-            try:
-                hit_sound.play()
-            except NameError:
-                pass
-        else:                       # Если противник убит
-            current_score = 100
-            current_score_centerx = hit.rect.centerx + 20
-            current_score_top = hit.rect.top + 20
-            current_enemy_count -= 1
-            remaining_enemy_count -= 1
-            if current_enemy_count == 2:
-                enemy_respawn_time = now
-            if remaining_enemy_count >= 3:
-                if current_enemy_count == 2:
-                    spawn = Spawn(spawn_centerxs[total_enemy_count]) 
-                if current_enemy_count == 1:
-                    spawn = Spawn(spawn_centerxs[total_enemy_count + 1]) 
-            total_score += 100
-            explosion = Explosion(hit.rect.center)
-            hit.kill()  
-            try:
-                explosion_sound.play()
-            except NameError:
-                pass
-            
-            if random.random() > 0.8:
-                powerup = Powerup(hit.rect.center)     
     # Если противники закончились, уровень пройден
     if remaining_enemy_count == 0 and now - last_enemy_hit_time > 2000 and now - powerup_hit_time > 2000:
         player_image = player.first_image
         player_level = player.level
         player_lives = player.lives
         level_won = True
-    
-    # Проверка столкновений игрока с элементом стены
-    hits = pygame.sprite.spritecollide(player, tiles, False)
-    for hit in hits:
-        if hit.type == "STEEL":
-            player.stop()
-            break
-        if hit.type == "BRICK":
-            player.stop()
-            break
-        if hit.type == "GRASS":
-            pass
-        if hit.type == "WATER":
-            player.stop()
-            break
-        if hit.type == "ICE":
-            pass
 
-    # Проверка столкновений противника с элементом стены
-    hits = pygame.sprite.groupcollide(enemies, tiles, False, False)
-    for hit in hits:
-        for tile in hits[hit]:
-            if tile.type == "STEEL":
-                hit.stop()
-                hit.last_rotate = now
-                hit.rotate()
-                break
-            if tile.type == "BRICK":
-                hit.stop()
-                hit.last_rotate = now
-                hit.rotate()
-                break
-            if tile.type == "GRASS":
-                pass
-            if tile.type == "WATER":
-                hit.stop()
-                hit.last_rotate = now
-                hit.rotate()
-                break
-            if tile.type == "ICE":
-                pass
-        
-    # Проверка столкновений игрока и улучшений
-    hits = pygame.sprite.spritecollide(player, powerups, True)
-    for hit in hits:
-        powerup_hit_time = now
-        current_score = 100
-        current_score_centerx = hit.rect.centerx
-        current_score_top = hit.rect.top
-        total_score += 100
-        try:
-            powerup_sound.play()
-        except NameError:
-            pass
-        if hit.type == "gun":
-            if enemies:
-                new_enemies_number = remaining_enemy_count - current_enemy_count # Количество противников,
-                for enemy in enemies:                              # которое нужно добавить после очистки карты
-                    enemy.kill()
-                    remaining_enemy_count -= 1
-                current_enemy_count = 0
-                enemy_respawn_time = now
-                if new_enemies_number != 0:
-                    spawn = Spawn(spawn_centerxs[total_enemy_count])
-                    new_enemies_number -= 1
-        if hit.type == "shield":
-            if shield.alive():
-                shield.kill()
-            shield = Shield(player.rect.center)
-        if hit.type == "base":
-            base.upgrade_wall()
-        if hit.type == "levelup":
-            player.upgrade(player.rect.center, player.direction)
-        if hit.type == "life":
-            player.lives += 1
-            if player.lives >= 5:
-                player.lives = 5
-                player.life = 100
-        if hit.type == "time":
-            frozen_time = True
-            freeze_time = now
-            for enemy in enemies:
-                enemy.frozen = True 
-    
-    # Проверка, не прошло ли время заморозки противников
+    # Если прошло время заморозки противников
     if frozen_time:
         if now - freeze_time > 5000:
             for enemy in enemies:
                 enemy.frozen = False
             frozen_time = False
 
-    # Проверка столкновений противника и игрока
-    hits = pygame.sprite.spritecollide(player, enemies, False)
-    for hit in hits:
-        player.stop()
-        hit.stop()
-        hit.last_rotate = now
-        hit.reverse()
- 
-    # Проверка столкновений противников друг с другом
-    for enemy in enemies:
-        enemy.remove(enemies)        
-        hits = pygame.sprite.spritecollide(enemy, enemies, False)
-        for hit in hits:
-            if hit.frozen != True:
-                hit.stop()
-                hit.last_rotate = now
-                hit.reverse()
-            if enemy.frozen != True:
-                enemy.stop() 
-                enemy.last_rotate = now
-                enemy.reverse()            
-            
-        enemy.add(enemies)
-
-    # Проверка столкновений игрока и базы
-    if pygame.sprite.collide_rect(player, base):
-        player.stop()
-    
-    # Проверка столкновений противников и базы
-    hits = pygame.sprite.spritecollide(base, enemies, False)
-    for hit in hits:
-        hit.stop()
-        hit.last_rotate = now
-        hit.rotate()
-    
-    # Проверка столкновений пули игрока и базы
-    hits1 = pygame.sprite.spritecollide(base, player_bullets, True)
-    
-    # Проверка столкновений пули противников и базы
-    hits2 = pygame.sprite.spritecollide(base, enemy_bullets, True)
-    if hits1 or hits2:
-        if not base.destroyed:
-            explosion = Explosion(base.rect.center)
-            base.destroyed = True
-            base.destroyed_time = now
-            try:
-                game_over_sound.play()
-            except NameError:
-                pass
-            game_over_string = "GAME OVER"
-            game_over_string_centerx = base.rect.centerx
-            game_over_string_top = base.rect.top
-    
     # Если база уничтожена, показать строку "GAME OVER"
     if base.destroyed and not before_start:
         if game_over_string_top > HEIGHT / 2:
             game_over_string_top -= 3
-    
+
     # Если база уничтожена, игра окончена
     if base.destroyed and now - base.destroyed_time > 3000 and not before_start:
         player.kill()
