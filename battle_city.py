@@ -1,4 +1,3 @@
-# code optimization
 import pygame
 import random
 import os
@@ -806,7 +805,7 @@ for i in range(1, 3):
     img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
     base_images.append(img)
 
-bullet_img = pygame.Surface((7, 14))
+bullet_img = pygame.Surface((6, 12))
 
 explosion_anim = []
 for i in range(1, 4):
@@ -1092,6 +1091,9 @@ while running:
         hit.remove(new_enemies)
         hit.add(enemies)
     
+    # Проверка столкновений пули противника и пули игрока
+    hits = pygame.sprite.groupcollide(player_bullets, enemy_bullets, True, True)
+
     # Проверка, не столкнулась ли пуля игрока с элементом стены
     hits = pygame.sprite.groupcollide(tiles, player_bullets, False, False)
     for hit in hits:
