@@ -2,6 +2,8 @@ import pygame
 import random
 import os
 import math
+from player import Player
+from mob import Enemy, NormalEnemy, FastEnemy, EnhancedEnemy, HeavyEnemy
 
 
 def get_time():
@@ -114,382 +116,6 @@ font_name = pygame.font.match_font("Arial")
 # настройка папки ассетов
 img_dir = os.path.join(os.path.dirname(__file__), "img")
 snd_dir = os.path.join(os.path.dirname(__file__), "snd")
-
-
-class Player(pygame.sprite.Sprite):
-    def __init__(self, image, level=0, lives=3):
-        pygame.sprite.Sprite.__init__(self)
-        self.first_image = image
-        self.image = self.first_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.centerx = WIDTH / 2 - 100
-        self.rect.bottom = HEIGHT
-        self.direction = "up"
-        self.speedx = 0
-        self.speedy = 0
-        self.shoot_delay = 500
-        self.last_shot = pygame.time.get_ticks()
-        self.bullet_speed = 10
-        self.bullet_strength = 1
-        self.life = 100
-        self.armor = 0
-        self.lives = lives
-        self.level = level
-        self.hidden = False
-        self.hide_timer = pygame.time.get_ticks()
-        if self.level == 1:
-            self.shoot_delay = 250
-            self.bullet_speed = 15
-            self.armor = 50
-            self.bullet_strength = 1
-        if self.level == 2:
-            self.shoot_delay = 250
-            self.bullet_speed = 15
-            self.armor = 150
-            self.bullet_strength = 2
-        
-        all_sprites.add(self)
-        layers.add(self)
-    
-    def rotate(self, direction):
-        angle = 0
-        if direction == "up":
-            angle = 0
-        elif direction == "right":
-            angle = -90
-        elif direction == "down":
-            angle = -180
-        elif direction == "left":
-            angle = 90
-        new_image = pygame.transform.rotate(self.first_image, angle)
-        old_center = self.rect.center
-        self.image = new_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.center = old_center
-
-    def move(self):
-        self.speedx = 0
-        self.speedy = 0
-        keystate = pygame.key.get_pressed()
-        # Проверка, какая клавиша нажата. Приоритет UP -> RIGHT -> DOWN -> LEFT
-        if keystate[pygame.K_UP] == True:
-            self.direction = "up"
-            self.rotate(self.direction)
-            self.speedy = -player_speed  
-        elif keystate[pygame.K_RIGHT] == True:
-            self.direction = "right"
-            self.rotate(self.direction)  
-            self.speedx = player_speed
-        elif keystate[pygame.K_DOWN] == True:
-            self.direction = "down"
-            self.rotate(self.direction) 
-            self.speedy = player_speed  
-        elif keystate[pygame.K_LEFT] == True:
-            self.direction = "left"
-            self.rotate(self.direction) 
-            self.speedx = -player_speed  
-        self.rect.x += self.speedx
-        self.rect.y += self.speedy 
-        if (keystate[pygame.K_SPACE] == True and
-        (current_enemy_count > 1 or remaining_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
-            self.shoot()
-    
-    def stop(self):
-        if self.direction == "up":
-            self.rect.y -= self.speedy
-        if self.direction == "right":
-            self.rect.x -= self.speedx
-        if self.direction == "down":
-            self.rect.y -= self.speedy
-        if self.direction == "left":
-            self.rect.x -= self.speedx
-    
-    def shoot(self):
-        now = pygame.time.get_ticks()
-        if now - self.last_shot > self.shoot_delay:
-            self.last_shot = pygame.time.get_ticks()
-            if self.direction == "up":
-                x = self.rect.centerx
-                y = self.rect.top
-            if self.direction == "right":
-                x = self.rect.right
-                y = self.rect.centery
-            if self.direction == "down":
-                x = self.rect.centerx
-                y = self.rect.bottom
-            if self.direction == "left":
-                x = self.rect.left
-                y = self.rect.centery
-            player_bullet = PlayerBullet(x, y, self.direction, self.bullet_speed, self.bullet_strength)
-            player_bullets.add(player_bullet)
-            try:
-                shoot_sound.play()
-            except NameError:
-                pass
-        
-    def hide(self):
-        self.hidden = True
-        self.hide_timer = pygame.time.get_ticks()
-        self.rect.center = (WIDTH / 2 - 100, HEIGHT + 200)
-
-    def upgrade(self, center, direction):
-        self.level += 1
-        if self.level >= 2:
-            self.level = 2
-        self.first_image = player_images[self.level]
-        self.image = self.first_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.center = center
-        self.direction = direction
-        self.life = 100
-        if self.level == 1:
-            self.shoot_delay = 250
-            self.bullet_speed = 15
-            self.armor = 50
-        if self.level == 2:
-            self.shoot_delay = 250
-            self.bullet_speed = 15
-            self.armor = 150
-            self.bullet_strength = 2
-        self.rotate(direction)
-    
-    def downgrade(self, center):
-        self.level = 0
-        self.first_image = player_images[self.level]
-        self.image = self.first_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.center = center
-        self.shoot_delay = 500
-        self.bullet_speed = 10
-        self.armor = 0
-        self.bullet_strength = 1
-
-    def update(self):
-        # Показать, если скрыто
-        if self.hidden and pygame.time.get_ticks() - self.hide_timer > 2000:
-            self.hidden = False
-            self.image = player_images[0]
-            self.image.set_colorkey(BLACK)
-            self.rect = self.image.get_rect()
-            self.rect.centerx = WIDTH / 2 - 100
-            self.rect.bottom = HEIGHT
-            self.direction = "up"
-            self.life = 100
-            shield = Shield(self.rect.center)
-
-        if not self.hidden:
-            self.move()
-            # Проверка таймера на улучшение стрельбы
-            if hasattr(self, "gun_start_time"):
-                if pygame.time.get_ticks() - self.gun_start_time > 10000:
-                    self.shoot_delay = 400
-            # Проверка на выход за пределы экрана
-            if self.rect.right > WIDTH:
-                self.stop()
-            if self.rect.left < 0:
-                self.stop()
-            if self.rect.bottom > HEIGHT:
-                self.stop()
-            if self.rect.top < 0:
-                self.stop()
-
-
-class Enemy(pygame.sprite.Sprite):
-    def __init__(self, centerx):
-        pygame.sprite.Sprite.__init__(self)
-        self.rand_image = random.choice(enemy_images)[0]
-        self.image = self.rand_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.centerx = centerx
-        self.rect.y = 0
-        self.direction = "down"
-        self.moving_time = 0
-        self.moving_time = 3000 # Частота смены направления движения
-        self.last_rotate = pygame.time.get_ticks()
-        self.speed = enemy_speed
-        self.speedx = 0
-        self.speedy = self.speed
-        self.shoot_delay = 500
-        self.last_shot = pygame.time.get_ticks()
-        self.bullet_speed = 10
-        self.bullet_strength = 1
-        self.life = 100
-        self.armor = 0
-        self.frozen = False
-
-        all_sprites.add(self)
-        new_enemies.add(self)
-
-    def rotate(self):
-        self.direction = random.choice(["up", "right", "down", "left"])
-        angle = 0
-        if self.direction == "up":
-            angle = 180
-            self.speedx = 0
-            self.speedy = -self.speed
-        elif self.direction == "right":
-            angle = 90
-            self.speedx = self.speed
-            self.speedy = 0
-        elif self.direction == "down":
-            angle = 0
-            self.speedx = 0
-            self.speedy = self.speed
-        elif self.direction == "left":
-            angle = -90
-            self.speedx = -self.speed
-            self.speedy = 0
-        new_image = pygame.transform.rotate(self.rand_image, angle)
-        old_center = self.rect.center
-        self.image = new_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.center = old_center    
-    
-    def reverse(self):
-        if self.direction == "up":
-            self.direction = "down"
-            self.speedy = self.speed
-        elif self.direction == "right":
-            self.direction = "left"
-            self.speedx = -self.speed
-        elif self.direction == "down":
-            self.direction = "up"
-            self.speedy = -self.speed
-        elif self.direction == "left":
-            self.direction = "right"
-            self.speedx = self.speed
-        new_image = pygame.transform.rotate(self.image, 180)
-        old_center = self.rect.center
-        self.image = new_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.center = old_center
-
-    def move(self):  
-        self.rect.x += self.speedx
-        self.rect.y += self.speedy
-
-    def stop(self):
-        if self.direction == "up":
-            self.rect.y -= self.speedy
-        if self.direction == "right":
-            self.rect.x -= self.speedx
-        if self.direction == "down":
-            self.rect.y -= self.speedy
-        if self.direction == "left":
-            self.rect.x -= self.speedx
-        self.speedx = 0
-        self.speedy = 0
-        
-    def shoot(self):
-        now = pygame.time.get_ticks()
-        if now - self.last_shot > self.shoot_delay:
-            self.last_shot = pygame.time.get_ticks()
-            if self.direction == "up":
-                x = self.rect.centerx
-                y = self.rect.top
-            if self.direction == "right":
-                x = self.rect.right
-                y = self.rect.centery
-            if self.direction == "down":
-                x = self.rect.centerx
-                y = self.rect.bottom
-            if self.direction == "left":
-                x = self.rect.left
-                y = self.rect.centery
-            enemy_bullet = EnemyBullet(x, y, self.direction, self.bullet_speed, self.bullet_strength)
-            enemy_bullets.add(enemy_bullet)
-            
-    def update(self):
-        if not self.frozen:
-            self.move()
-            
-            now = pygame.time.get_ticks()
-            if now - self.last_rotate > self.moving_time:
-                self.last_rotate = pygame.time.get_ticks()
-                self.stop()
-                self.rotate() 
-
-            # Проверка на выход за пределы экрана
-            if self.rect.right > WIDTH or self.rect.left < 0 or self.rect.bottom > HEIGHT or self.rect.top < 0:
-                self.stop()
-                self.rotate()
-            
-            self.shoot()
-
-
-class NormalEnemy(Enemy):
-    def __init__(self, centerx):
-        super().__init__(centerx)
-        self.rand_image = random.choice(enemy_images)[0]
-        self.image = self.rand_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.centerx = centerx
-        self.rect.y = 0  
-        self.tank_type = "normal"
-        self.speed = enemy_speed
-        self.speedy = self.speed
-        self.bullet_speed = 10
-        self.bullet_strength = 1
-        self.armor = 0
-        
-
-class FastEnemy(Enemy):
-    def __init__(self, centerx):
-        super().__init__(centerx)
-        self.rand_image = random.choice(enemy_images)[1]
-        self.image = self.rand_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.centerx = centerx
-        self.rect.y = 0
-        self.tank_type = "fast"
-        self.speed = enemy_speed * 1.4
-        self.speedy = self.speed
-        self.bullet_speed = 15
-        self.bullet_strength = 1
-        self.armor = 0
-
-   
-class EnhancedEnemy(Enemy):
-    def __init__(self, centerx):
-        super().__init__(centerx)
-        self.rand_image = random.choice(enemy_images)[2]
-        self.image = self.rand_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.centerx = centerx
-        self.rect.y = 0
-        self.tank_type = "enhanced"
-        self.speed = enemy_speed
-        self.speedy = self.speed
-        self.bullet_speed = 10
-        self.bullet_strength = 1
-        self.armor = 50
-    
-
-class HeavyEnemy(Enemy):
-    def __init__(self, centerx):
-        super().__init__(centerx)
-        self.rand_image = random.choice(enemy_images)[3]
-        self.image = self.rand_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.centerx = centerx
-        self.rect.y = 0
-        self.tank_type = "heavy"
-        self.speed = enemy_speed
-        self.speedy = self.speed
-        self.bullet_speed = 10
-        self.bullet_strength = 1
-        self.armor = 150
     
 
 class Base(pygame.sprite.Sprite):
@@ -1094,7 +720,7 @@ while running:
     # Проверка столкновений пули противника и пули игрока
     hits = pygame.sprite.groupcollide(player_bullets, enemy_bullets, True, True)
 
-    # Проверка, не столкнулась ли пуля игрока с элементом стены
+    # Проверка столкновений пули игрока с элементом стены
     hits = pygame.sprite.groupcollide(tiles, player_bullets, False, False)
     for hit in hits:
         if hit.type == "STEEL":
@@ -1111,7 +737,7 @@ while running:
         if hit.type == "ICE":
             pass
 
-    # Проверка, не столкнулась ли пуля противника с элементом стены
+    # Проверка столкновений пули противника с элементом стены
     hits = pygame.sprite.groupcollide(tiles, enemy_bullets, False, False)
     for hit in hits:
         if hit.type == "STEEL":
@@ -1132,7 +758,7 @@ while running:
     for shield in shields:
         hits = pygame.sprite.spritecollide(shield, enemy_bullets, True)
 
-    # Проверка, не ударила ли пуля игрока
+    # Проверка столкновений пули противника и игрока
     if not shield.alive():
         hits = pygame.sprite.spritecollide(player, enemy_bullets, True)
         for hit in hits:
@@ -1167,7 +793,7 @@ while running:
             pass
         game_over = True
     
-    # Проверка, не ударила ли пуля противника
+    # Проверка столкновений пули игрока и противника
     hits = pygame.sprite.groupcollide(enemies, player_bullets, False, True)
     for hit in hits:
         hits_interval = now - last_enemy_hit_time
@@ -1227,7 +853,7 @@ while running:
         player_lives = player.lives
         level_won = True
     
-    # Проверка, не столкнулся ли игрок с элементом стены
+    # Проверка столкновений игрока с элементом стены
     hits = pygame.sprite.spritecollide(player, tiles, False)
     for hit in hits:
         if hit.type == "STEEL":
@@ -1244,7 +870,7 @@ while running:
         if hit.type == "ICE":
             pass
 
-    # Проверка, не столкнулся ли противник с элементом стены
+    # Проверка столкновений противника с элементом стены
     hits = pygame.sprite.groupcollide(enemies, tiles, False, False)
     for hit in hits:
         for tile in hits[hit]:
@@ -1317,7 +943,7 @@ while running:
                 enemy.frozen = False
             frozen_time = False
 
-    # Проверка, не столкнулись ли противник и игрок
+    # Проверка столкновений противника и игрока
     hits = pygame.sprite.spritecollide(player, enemies, False)
     for hit in hits:
         player.stop()
@@ -1325,7 +951,7 @@ while running:
         hit.last_rotate = now
         hit.reverse()
  
-    # Проверка, не столкнулись ли противники друг с другом
+    # Проверка столкновений противников друг с другом
     for enemy in enemies:
         enemy.remove(enemies)        
         hits = pygame.sprite.spritecollide(enemy, enemies, False)
