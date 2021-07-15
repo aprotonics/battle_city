@@ -1,16 +1,15 @@
 import pygame
 import random
+import config
+from classes import EnemyBullet
 
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, centerx):
-        # from main import enemy_images, enemy_speed, all_sprites, new_enemies
-        import main
-        
         pygame.sprite.Sprite.__init__(self)
-        self.rand_image = random.choice(main.enemy_images)[0]
+        self.rand_image = random.choice(config.enemy_images)[0]
         self.image = self.rand_image
-        self.image.set_colorkey(main.BLACK)
+        self.image.set_colorkey(config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = centerx
         self.rect.y = 0
@@ -18,7 +17,7 @@ class Enemy(pygame.sprite.Sprite):
         self.moving_time = 0
         self.moving_time = 3000 # Частота смены направления движения
         self.last_rotate = pygame.time.get_ticks()
-        self.speed = main.enemy_speed
+        self.speed = config.enemy_speed
         self.speedx = 0
         self.speedy = self.speed
         self.shoot_delay = 500
@@ -29,12 +28,10 @@ class Enemy(pygame.sprite.Sprite):
         self.armor = 0
         self.frozen = False
 
-        main.all_sprites.add(self)
-        main.new_enemies.add(self)
+        config.all_sprites.add(self)
+        config.new_enemies.add(self)
 
     def rotate(self):
-        import main
-        
         self.direction = random.choice(["up", "right", "down", "left"])
         angle = 0
         if self.direction == "up":
@@ -56,13 +53,11 @@ class Enemy(pygame.sprite.Sprite):
         new_image = pygame.transform.rotate(self.rand_image, angle)
         old_center = self.rect.center
         self.image = new_image
-        self.image.set_colorkey(main.BLACK)
+        self.image.set_colorkey(config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = old_center    
     
     def reverse(self):
-        import main
-        
         if self.direction == "up":
             self.direction = "down"
             self.speedy = self.speed
@@ -78,7 +73,7 @@ class Enemy(pygame.sprite.Sprite):
         new_image = pygame.transform.rotate(self.image, 180)
         old_center = self.rect.center
         self.image = new_image
-        self.image.set_colorkey(main.BLACK)
+        self.image.set_colorkey(config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = old_center
 
@@ -99,9 +94,6 @@ class Enemy(pygame.sprite.Sprite):
         self.speedy = 0
         
     def shoot(self):
-        # from main import EnemyBullet, enemy_bullets
-        import main
-        
         now = pygame.time.get_ticks()
         if now - self.last_shot > self.shoot_delay:
             self.last_shot = pygame.time.get_ticks()
@@ -117,12 +109,10 @@ class Enemy(pygame.sprite.Sprite):
             if self.direction == "left":
                 x = self.rect.left
                 y = self.rect.centery
-            enemy_bullet = main.EnemyBullet(x, y, self.direction, self.bullet_speed, self.bullet_strength)
-            main.enemy_bullets.add(enemy_bullet)
+            enemy_bullet = EnemyBullet(x, y, self.direction, self.bullet_speed, self.bullet_strength)
+            config.enemy_bullets.add(enemy_bullet)
             
     def update(self):
-        import main
-        
         if not self.frozen:
             self.move()
             
@@ -133,7 +123,8 @@ class Enemy(pygame.sprite.Sprite):
                 self.rotate() 
 
             # Проверка на выход за пределы экрана
-            if self.rect.right > main.WIDTH or self.rect.left < 0 or self.rect.bottom > main.HEIGHT or self.rect.top < 0:
+            if (self.rect.right > config.WIDTH or self.rect.left < 0 or
+                self.rect.bottom > config.HEIGHT or self.rect.top < 0):
                 self.stop()
                 self.rotate()
             
@@ -142,18 +133,15 @@ class Enemy(pygame.sprite.Sprite):
 
 class NormalEnemy(Enemy):
     def __init__(self, centerx):
-        # from main import enemy_images, enemy_speed
-        import main
-        
         super().__init__(centerx)
-        self.rand_image = random.choice(main.enemy_images)[0]
+        self.rand_image = random.choice(config.enemy_images)[0]
         self.image = self.rand_image
-        self.image.set_colorkey(main.BLACK)
+        self.image.set_colorkey(config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = centerx
         self.rect.y = 0  
         self.tank_type = "normal"
-        self.speed = main.enemy_speed
+        self.speed = config.enemy_speed
         self.speedy = self.speed
         self.bullet_speed = 10
         self.bullet_strength = 1
@@ -162,18 +150,15 @@ class NormalEnemy(Enemy):
 
 class FastEnemy(Enemy):
     def __init__(self, centerx):
-        # from main import enemy_images, enemy_speed
-        import main
-        
         super().__init__(centerx)
-        self.rand_image = random.choice(main.enemy_images)[1]
+        self.rand_image = random.choice(config.enemy_images)[1]
         self.image = self.rand_image
-        self.image.set_colorkey(main.BLACK)
+        self.image.set_colorkey(config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = centerx
         self.rect.y = 0
         self.tank_type = "fast"
-        self.speed = main.enemy_speed * 1.4
+        self.speed = config.enemy_speed * 1.4
         self.speedy = self.speed
         self.bullet_speed = 15
         self.bullet_strength = 1
@@ -182,18 +167,15 @@ class FastEnemy(Enemy):
    
 class EnhancedEnemy(Enemy):
     def __init__(self, centerx):
-        # from main import enemy_images, enemy_speed
-        import main
-        
         super().__init__(centerx)
-        self.rand_image = random.choice(main.enemy_images)[2]
+        self.rand_image = random.choice(config.enemy_images)[2]
         self.image = self.rand_image
-        self.image.set_colorkey(main.BLACK)
+        self.image.set_colorkey(config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = centerx
         self.rect.y = 0
         self.tank_type = "enhanced"
-        self.speed = main.enemy_speed
+        self.speed = config.enemy_speed
         self.speedy = self.speed
         self.bullet_speed = 10
         self.bullet_strength = 1
@@ -202,18 +184,15 @@ class EnhancedEnemy(Enemy):
 
 class HeavyEnemy(Enemy):
     def __init__(self, centerx):
-        # from main import enemy_images, enemy_speed
-        import main
-        
         super().__init__(centerx)
-        self.rand_image = random.choice(main.enemy_images)[3]
+        self.rand_image = random.choice(config.enemy_images)[3]
         self.image = self.rand_image
-        self.image.set_colorkey(main.BLACK)
+        self.image.set_colorkey(config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = centerx
         self.rect.y = 0
         self.tank_type = "heavy"
-        self.speed = main.enemy_speed
+        self.speed = config.enemy_speed
         self.speedy = self.speed
         self.bullet_speed = 10
         self.bullet_strength = 1
