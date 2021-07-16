@@ -1,6 +1,7 @@
 import pygame
 import random
 import os
+import sys
 import math
 import config
 from characters.player_module import Player
@@ -63,6 +64,17 @@ def show_game_over_screen():
                 pygame.quit()
             if event.type == pygame.KEYDOWN:
                 waiting = False
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 # создаем игру и окно
@@ -140,7 +152,7 @@ while running:
 
         # Создание стен
         s = config.TILE_SIZE
-        with open(f"levels/{config.level_number}.txt", "rt") as f:
+        with open(resource_path(f"levels/{config.level_number}.txt"), "rt") as f:
             lines = f.readlines()
         for i in range(13):
             for j in range(13):
@@ -218,7 +230,7 @@ while running:
 
         # Создание стен
         s = config.TILE_SIZE
-        with open(f"levels/{config.level_number}.txt", "rt") as f:
+        with open(resource_path(f"levels/{config.level_number}.txt"), "rt") as f:
             lines = f.readlines()
         for i in range(13):
             for j in range(13):
