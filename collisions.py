@@ -24,6 +24,7 @@ def collide():
         if hit.type == "BRICK":
             hit.kill() # убрать элементы стены
             hits[hit][0].kill() # убрать пулю
+            config.graph.walls.remove((hit.rect.x, hit.rect.y)) # убрать элемент стены из графа
         if hit.type == "GRASS":
             pass
         if hit.type == "WATER":

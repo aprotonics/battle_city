@@ -87,7 +87,6 @@ class Bullet(pygame.sprite.Sprite):
         
         config.all_sprites.add(self)
         config.bullets.add(self)
-        config.layers.add(self)
 
     def rotate(self, direction):
         angle = 0
@@ -265,6 +264,9 @@ class Tile(pygame.sprite.Sprite):
         config.all_sprites.add(self)
         config.tiles.add(self)
         config.layers.add(self)
+
+        if self.type != "GRASS":
+            config.graph.walls.append((x, y))
         
     def update(self):
         if self.type == 'WATER':

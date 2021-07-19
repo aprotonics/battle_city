@@ -12,19 +12,27 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.centerx = config.WIDTH / 2 - 100
         self.rect.bottom = config.HEIGHT
+        self.graph_coordinate_x = self.rect.x
+        self.graph_coordinate_y = self.rect.y
         self.direction = "up"
+
         self.speedx = 0
         self.speedy = 0
+        self.sum_x = 0 # Пройденное растояние между точками сетки
+        self.sum_y = 0 # Пройденное растояние между точками сетки
+
         self.shoot_delay = 500
         self.last_shot = pygame.time.get_ticks()
         self.bullet_speed = 10
         self.bullet_strength = 1
+        
         self.life = 100
         self.armor = 0
         self.lives = lives
         self.level = level
         self.hidden = False
         self.hide_timer = pygame.time.get_ticks()
+
         if self.level == 1:
             self.shoot_delay = 250
             self.bullet_speed = 15
@@ -37,7 +45,6 @@ class Player(pygame.sprite.Sprite):
             self.bullet_strength = 2
 
         config.all_sprites.add(self)
-        config.layers.add(self)
 
     def rotate(self, direction):
         angle = 0
@@ -59,6 +66,7 @@ class Player(pygame.sprite.Sprite):
     def move(self):
         self.speedx = 0
         self.speedy = 0
+
         keystate = pygame.key.get_pressed()
         # Проверка, какая клавиша нажата. Приоритет UP -> RIGHT -> DOWN -> LEFT
         if keystate[pygame.K_UP] == True:
@@ -76,9 +84,21 @@ class Player(pygame.sprite.Sprite):
         elif keystate[pygame.K_LEFT] == True:
             self.direction = "left"
             self.rotate(self.direction) 
-            self.speedx = -config.player_speed  
+            self.speedx = -config.player_speed
+
         self.rect.x += self.speedx
-        self.rect.y += self.speedy 
+        self.sum_x += self.speedx
+        self.rect.y += self.speedy
+        self.sum_y += self.speedy 
+
+        # Проверка на кратность координат числу 50 для использования в графе
+        if abs(self.sum_x) // 50 > 0:
+            self.graph_coordinate_x = self.rect.x - self.rect.x % 50
+            self.sum_x = self.rect.x % 50
+        if abs(self.sum_y) // 50 > 0:
+            self.graph_coordinate_y = self.rect.y - self.rect.y % 50
+            self.sum_y = self.rect.y % 50
+
         if (keystate[pygame.K_SPACE] == True and
         (config.current_enemy_count > 1 or config.remaining_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
             self.shoot()
@@ -86,12 +106,16 @@ class Player(pygame.sprite.Sprite):
     def stop(self):
         if self.direction == "up":
             self.rect.y -= self.speedy
+            self.sum_y -= self.speedy
         if self.direction == "right":
             self.rect.x -= self.speedx
+            self.sum_x -= self.speedx
         if self.direction == "down":
             self.rect.y -= self.speedy
+            self.sum_y -= self.speedy
         if self.direction == "left":
             self.rect.x -= self.speedx
+            self.sum_x -= self.speedx
 
     def shoot(self):
         now = pygame.time.get_ticks()
@@ -155,6 +179,35 @@ class Player(pygame.sprite.Sprite):
         self.armor = 0
         self.bullet_strength = 1
 
+    def player_in_screen(self):
+        # Проверка на выход за пределы экрана
+        if self.rect.right > config.WIDTH:
+            self.stop()
+        if self.rect.left <= 0:
+            self.stop()
+        if self.rect.bottom > config.HEIGHT:
+            self.stop()
+        if self.rect.top <= 0:
+            self.stop()
+    
+    def player_vs_tiles_colide(self):
+        # Проверка столкновений игрока с элементом стены
+        hits = pygame.sprite.spritecollide(self, config.tiles, False)
+        for hit in hits:
+            if hit.type == "STEEL":
+                self.stop()
+                break
+            if hit.type == "BRICK":
+                self.stop()
+                break
+            if hit.type == "GRASS":
+                pass
+            if hit.type == "WATER":
+                self.stop()
+                break
+            if hit.type == "ICE":
+                pass
+
     def update(self):
         # Показать, если скрыто
         if self.hidden and pygame.time.get_ticks() - self.hide_timer > 2000:
@@ -164,6 +217,8 @@ class Player(pygame.sprite.Sprite):
             self.rect = self.image.get_rect()
             self.rect.centerx = config.WIDTH / 2 - 100
             self.rect.bottom = config.HEIGHT
+            self.graph_coordinate_x = self.rect.x
+            self.graph_coordinate_y = self.rect.y
             self.direction = "up"
             self.life = 100
             shield = Shield(self.rect.center)
@@ -173,13 +228,9 @@ class Player(pygame.sprite.Sprite):
             # Проверка таймера на улучшение стрельбы
             if hasattr(self, "gun_start_time"):
                 if pygame.time.get_ticks() - self.gun_start_time > 10000:
-                    self.shoot_delay = 400
-            # Проверка на выход за пределы экрана
-            if self.rect.right > config.WIDTH:
-                self.stop()
-            if self.rect.left < 0:
-                self.stop()
-            if self.rect.bottom > config.HEIGHT:
-                self.stop()
-            if self.rect.top < 0:
-                self.stop()
+                    self.shoot_delay = 500
+            
+            self.player_in_screen()
+
+            self.player_vs_tiles_colide()
+            
