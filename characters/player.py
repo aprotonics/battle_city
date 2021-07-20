@@ -90,13 +90,27 @@ class Player(pygame.sprite.Sprite):
         self.rect.y += self.speedy
         self.sum_y += self.speedy 
 
-        # Проверка на кратность координат числу 50 для использования в графе
-        if abs(self.sum_x) // 50 > 0:
-            self.graph_coordinate_x = self.rect.x - self.rect.x % 50
+        # Поиск ближайшей вершины графа
+        if self.sum_y <= -50: # движение up
+            self.sum_y = -(abs(self.sum_y) % 50)
+            self.graph_coordinate_y = self.rect.y - self.sum_y
             self.sum_x = self.rect.x % 50
-        if abs(self.sum_y) // 50 > 0:
-            self.graph_coordinate_y = self.rect.y - self.rect.y % 50
+            self.graph_coordinate_x = self.rect.x - self.sum_x
+        if self.sum_x >= 50: # движение right
+            self.sum_x = self.sum_x % 50
+            self.graph_coordinate_x = self.rect.x - self.sum_x
             self.sum_y = self.rect.y % 50
+            self.graph_coordinate_y = self.rect.y - self.sum_y
+        if self.sum_y >= 50: # движение down
+            self.sum_y = self.sum_y % 50
+            self.graph_coordinate_y = self.rect.y - self.sum_y
+            self.sum_x = self.rect.x % 50
+            self.graph_coordinate_x = self.rect.x - self.sum_x
+        if self.sum_x <= -50: # движение left
+            self.sum_x = -(abs(self.sum_x) % 50)
+            self.graph_coordinate_x = self.rect.x - self.sum_x
+            self.sum_y = self.rect.y % 50
+            self.graph_coordinate_y = self.rect.y - self.sum_y
 
         if (keystate[pygame.K_SPACE] == True and
         (config.current_enemy_count > 1 or config.remaining_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
