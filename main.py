@@ -3,14 +3,68 @@ import random
 import os
 import sys
 import math
-import heapq
 import datetime
 import config
+from structures import PriorityQueue, GridWithWeights
 from characters.player import Player
 from characters.mob import Enemy, NormalEnemy, FastEnemy, EnhancedEnemy, HeavyEnemy
 from classes import Shield, Base, Tile, Spawn
 import collisions
 import render
+
+
+def create_path(start, goal):
+    start_time = datetime.datetime.now()
+
+    came_from, cost_so_far, iterations = a_star_search(config.graph, start, goal)
+
+    current = goal
+    path = [current]
+    while current != start:
+        current = came_from[current]
+        path.append(current)
+
+    path.reverse()
+
+    end_time = datetime.datetime.now()
+    print("time", end_time - start_time)
+    print("iterations", iterations)
+
+    return path
+
+
+def heuristic(a, b):
+    (x1, y1) = a
+    (x2, y2) = b
+    return abs(x1 - x2) + abs(y1 - y2)
+
+
+def a_star_search(graph, start, goal):
+    iterations = 0
+    frontier = PriorityQueue() # Граница
+    frontier.push(start, 0)
+    came_from = {} # Откуда пришли
+    cost_so_far = {}
+    came_from[start] = None
+    cost_so_far[start] = 0
+
+    # Обход графа
+    while not frontier.empty():
+        current = frontier.extract()
+
+        if current == goal:
+            break
+
+        for element in graph.neighbours(current):
+            iterations += 1
+            new_cost = cost_so_far[current] + graph.cost(current, element)
+            if element not in cost_so_far or new_cost < cost_so_far[element]:
+                cost_so_far[element] = new_cost
+                priority = new_cost + heuristic(goal, element)
+                frontier.push(element, priority)
+                came_from[element] = current
+    
+    return came_from, cost_so_far, iterations
 
 
 def get_time():
@@ -93,116 +147,18 @@ config.font_name = pygame.font.match_font("Arial")
 
 
 
-class PriorityQueue():
-    def __init__(self):
-        self._list = []
-    
-    def __repr__(self) -> str:
-        return self._list.__repr__()
-    
-    def __len__(self) -> int:
-        return self._list.__len__()
-    
-    def push(self, element: int, priority: int):
-        heapq.heappush(self._list, (priority, element))
-
-    def extract(self) -> int:
-        return heapq.heappop(self._list)[1]
-    
-    def empty(self) -> bool:
-        return not bool(self.__len__())
-
-
-class SquareGrid():
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.walls = []
-    
-    def in_bounds(self, id):
-        (x, y) = id
-        return 0 <= x < self.width and 0 <= y < self.height
-
-    def passable(self, id):
-        (x, y) = id
-        condition = ((id not in self.walls) and 
-                ((x + 25, y) not in self.walls) and ((x, y + 25) not in self.walls) and
-                ((x + 25, y + 25) not in self.walls))
-        return condition
-
-    def neighbours(self, id):
-        (x, y) = id
-        results = [(x, y-25), (x-25, y), (x, y+25), (x+25, y)]
-        results = filter(self.in_bounds, results)
-        results = filter(self.passable, results)
-        return results
-
-
-class GridWithWeights(SquareGrid):
-    def __init__(self, width, height):
-        super().__init__(width, height)
-        self.weights = {}
-
-    def cost(self, from_node, to_node): # Вычисление пути в зависимости от to_node
-        return self.weights.get(to_node, 25)
-
-
-def create_path(start, goal):
-    start_time = datetime.datetime.now()
-
-    came_from, cost_so_far, iterations = a_star_search(config.graph, start, goal)
-
-    current = goal
-    path = [current]
-    while current != start:
-        current = came_from[current]
-        path.append(current)
-
-    path.reverse()
-
-    end_time = datetime.datetime.now()
-    print("time", end_time - start_time)
-    print("iterations", iterations)
-
-    return path
-
-
-def heuristic(a, b):
-    (x1, y1) = a
-    (x2, y2) = b
-    return abs(x1 - x2) + abs(y1 - y2)
-
-
-def a_star_search(graph, start, goal):
-    iterations = 0
-    frontier = PriorityQueue() # Граница
-    frontier.push(start, 0)
-    came_from = {} # Откуда пришли
-    cost_so_far = {}
-    came_from[start] = None
-    cost_so_far[start] = 0
-
-    # Обход графа
-    while not frontier.empty():
-        current = frontier.extract()
-
-        if current == goal:
-            break
-
-        for element in graph.neighbours(current):
-            iterations += 1
-            new_cost = cost_so_far[current] + graph.cost(current, element)
-            if element not in cost_so_far or new_cost < cost_so_far[element]:
-                cost_so_far[element] = new_cost
-                priority = new_cost + heuristic(goal, element)
-                frontier.push(element, priority)
-                came_from[element] = current
-    
-    return came_from, cost_so_far, iterations
-
 
 config.graph = GridWithWeights(config.WIDTH, config.HEIGHT)
 
+## Алгоритм поиска пути
+config.start = (0 * 50, 0 * 50)
+config.goal = (4 * 50, 12 * 50)
+
+# Создание пути
+config.path = create_path(config.start, config.goal)
+
+print(config.path)
+print()
 
 
 
@@ -249,7 +205,7 @@ while running:
         config.current_score = ""
         config.current_score_centerx = -100
         config.current_score_top = -100
-        config.level_number = 1
+        config.level_number = 2
         config.total_score = 0
         config.total_enemy = 5         # Количество противников на весь уровень
         config.remaining_enemy_count = config.total_enemy # Оставшееся количество противников
@@ -280,14 +236,14 @@ while running:
                     Tile(j * s + s / 2, i * s + s / 2, name)
 
         # Создание меток появления
-        config.spawn_centerxs = ["" for i in range(config.total_enemy)]
-        config.coordinates_lst = [25, config.WIDTH / 2, config.WIDTH - 25]
-        config.spawn_centerxs[0] = random.choice(config.coordinates_lst) # Создание списка координат появления
+        config.spawn_coordinates_x = ["" for i in range(config.total_enemy)]
+        config.coordinates_lst = [0 * 50, 6 * 50, 12 * 50]
+        config.spawn_coordinates_x[0] = random.choice(config.coordinates_lst) # Создание списка координат появления
         for i in range(1, config.total_enemy):              # Создание списка координат появления
             lst = config.coordinates_lst.copy()
-            lst.remove(config.spawn_centerxs[i - 1])
-            config.spawn_centerxs[i] = random.choice(lst)
-        Spawn(config.spawn_centerxs[0]) # Создание первой метки появления
+            lst.remove(config.spawn_coordinates_x[i - 1])
+            config.spawn_coordinates_x[i] = random.choice(lst)
+        Spawn(config.spawn_coordinates_x[0]) # Создание первой метки появления
         
     if game_over:
         show_game_over_screen()
@@ -358,14 +314,14 @@ while running:
                     Tile(j * s + s / 2, i * s + s / 2, name)
 
         # Создание меток появления
-        config.spawn_centerxs = ["" for i in range(config.total_enemy)]
-        config.coordinates_lst = [25, config.WIDTH / 2, config.WIDTH - 25]
-        config.spawn_centerxs[0] = random.choice(config.coordinates_lst) # Создание списка координат появления
+        config.spawn_coordinates_x = ["" for i in range(config.total_enemy)]
+        config.coordinates_lst = [0 * 50, 6 * 50, 12 * 50]
+        config.spawn_coordinates_x[0] = random.choice(config.coordinates_lst) # Создание списка координат появления
         for i in range(1, config.total_enemy):              # Создание списка координат появления
             lst = config.coordinates_lst.copy()
-            lst.remove(config.spawn_centerxs[i - 1])
-            config.spawn_centerxs[i] = random.choice(lst)
-        Spawn(config.spawn_centerxs[0]) # Создание первой метки появления
+            lst.remove(config.spawn_coordinates_x[i - 1])
+            config.spawn_coordinates_x[i] = random.choice(lst)
+        Spawn(config.spawn_coordinates_x[0]) # Создание первой метки появления
 
     # Держим цикл на правильной скорости
     config.clock.tick(config.FPS)
@@ -384,17 +340,17 @@ while running:
     config.now = pygame.time.get_ticks()
     config.formatted_now_time = get_time() 
     
-    # Добавление первых противников и spawns
+    # Добавление первых противников и меток появления
     enemies_lst = [NormalEnemy] # Список подклассов противника
     if config.total_enemy_count < 3 and config.now - config.enemy_respawn_time >= config.appearance_delay:
         config.enemy_respawn_time = config.now
-        random.choice(enemies_lst)(config.spawn_centerxs[config.total_enemy_count])
+        random.choice(enemies_lst)(config.spawn_coordinates_x[config.total_enemy_count]) # Создание противника
         config.current_enemy_count += 1
         config.total_enemy_count += 1
         if config.total_enemy_count < 3:
-            Spawn(config.spawn_centerxs[config.total_enemy_count])
+            Spawn(config.spawn_coordinates_x[config.total_enemy_count])
 
-    # Добавление остальных противников и spawns
+    # Добавление остальных противников и меток появления
     if config.now - config.enemy_respawn_time >= config.appearance_delay and config.remaining_enemy_count >= 3 and config.current_enemy_count < 3:
         if config.current_enemy_count == 2 and config.new_enemies_number == 0:
             config.enemy_respawn_time = config.now
@@ -402,22 +358,22 @@ while running:
             config.enemy_respawn_time += config.hits_interval
         if config.new_enemies_number != 0: # После применения улучшения Gun
             config.enemy_respawn_time = config.now
-        random.choice(enemies_lst)(config.spawn_centerxs[config.total_enemy_count])
+        random.choice(enemies_lst)(config.spawn_coordinates_x[config.total_enemy_count])
         config.current_enemy_count += 1
         config.total_enemy_count += 1
         while config.new_enemies_number != 0: # После применения улучшения Gun
-            Spawn(config.spawn_centerxs[config.total_enemy_count])
+            Spawn(config.spawn_coordinates_x[config.total_enemy_count])
             config.new_enemies_number -= 1
 
     # Добавление последних противников
     if (config.now - config.enemy_respawn_time >= config.appearance_delay and config.remaining_enemy_count < 3 
         and config.remaining_enemy_count != config.current_enemy_count):
         config.enemy_respawn_time = config.now
-        random.choice(enemies_lst)(config.spawn_centerxs[config.total_enemy_count])
+        random.choice(enemies_lst)(config.spawn_coordinates_x[config.total_enemy_count])
         config.current_enemy_count += 1
         config.total_enemy_count += 1
         while config.new_enemies_number != 0: # После применения улучшения Gun
-            Spawn(config.spawn_centerxs[config.total_enemy_count])
+            Spawn(config.spawn_coordinates_x[config.total_enemy_count])
             config.new_enemies_number -= 1
     
     # Добавление обработки столкновений

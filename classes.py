@@ -178,12 +178,12 @@ class Powerup(pygame.sprite.Sprite):
 
 
 class Spawn(pygame.sprite.Sprite):
-    def __init__(self, centerx):
+    def __init__(self, x):
         pygame.sprite.Sprite.__init__(self)
         self.image = config.spawn_images[0]
         self.image.set_colorkey(config.BLACK)
         self.rect = self.image.get_rect()
-        self.rect.centerx = centerx
+        self.rect.x = x
         self.rect.y = 0
         self.frame = 0
         self.last_update = pygame.time.get_ticks()

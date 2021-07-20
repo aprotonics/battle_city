@@ -5,7 +5,7 @@ from classes import Explosion, Powerup, Spawn, Shield
 
 
 def collide():
-    # Проверка столкновений противников и spawns
+    # Проверка столкновений противников и меток появления
     hits = pygame.sprite.groupcollide(config.new_enemies, config.spawns, False, True)
     for hit in hits:
         hit.remove(config.new_enemies)
@@ -72,7 +72,9 @@ def collide():
                 except NameError:
                     pass
             else:
-                Explosion(hit.rect.center)
+                Explosion(hit.rect.center) 
+                for enemy in config.enemies:
+                    enemy.change_mode(2, 1)
                 config.player.hide()
                 config.player.lives -= 1
                 config.player.downgrade(config.player.rect.center)
@@ -121,9 +123,9 @@ def collide():
                 config.enemy_respawn_time = config.now
             if config.remaining_enemy_count >= 3:
                 if config.current_enemy_count == 2:
-                    Spawn(config.spawn_centerxs[config.total_enemy_count]) 
+                    Spawn(config.spawn_coordinates_x[config.total_enemy_count]) 
                 if config.current_enemy_count == 1:
-                    Spawn(config.spawn_centerxs[config.total_enemy_count + 1]) 
+                    Spawn(config.spawn_coordinates_x[config.total_enemy_count + 1]) 
             config.total_score += 100
             Explosion(hit.rect.center)
             hit.kill()  
@@ -197,7 +199,7 @@ def collide():
                 config.current_enemy_count = 0
                 config.enemy_respawn_time = config.now
                 if config.new_enemies_number != 0:
-                    Spawn(config.spawn_centerxs[config.total_enemy_count])
+                    Spawn(config.spawn_coordinates_x[config.total_enemy_count])
                     config.new_enemies_number -= 1
         if hit.type == "shield":
             if config.shield.alive():

@@ -10,8 +10,7 @@ class Player(pygame.sprite.Sprite):
         self.image = self.first_image
         self.image.set_colorkey(config.BLACK)
         self.rect = self.image.get_rect()
-        self.rect.centerx = config.WIDTH / 2 - 100
-        self.rect.bottom = config.HEIGHT
+        self.rect.x,  self.rect.y = config.goal
         self.graph_coordinate_x = self.rect.x
         self.graph_coordinate_y = self.rect.y
         self.direction = "up"
@@ -23,7 +22,7 @@ class Player(pygame.sprite.Sprite):
 
         self.shoot_delay = 500
         self.last_shot = pygame.time.get_ticks()
-        self.bullet_speed = 10
+        self.bullet_speed = 20
         self.bullet_strength = 1
         
         self.life = 100
@@ -133,7 +132,7 @@ class Player(pygame.sprite.Sprite):
             if self.direction == "left":
                 x = self.rect.left
                 y = self.rect.centery
-            player_bullet = PlayerBullet(x, y, self.direction, self.bullet_speed, self.bullet_strength)
+            player_bullet = PlayerBullet(x, y, self.direction, speed=self.bullet_speed, strength=self.bullet_strength)
             config.player_bullets.add(player_bullet)
             try:
                 config.shoot_sound.play()
@@ -215,13 +214,15 @@ class Player(pygame.sprite.Sprite):
             self.image = config.player_images[0]
             self.image.set_colorkey(config.BLACK)
             self.rect = self.image.get_rect()
-            self.rect.centerx = config.WIDTH / 2 - 100
-            self.rect.bottom = config.HEIGHT
+            self.rect.x,  self.rect.y = config.goal
             self.graph_coordinate_x = self.rect.x
             self.graph_coordinate_y = self.rect.y
             self.direction = "up"
             self.life = 100
             shield = Shield(self.rect.center)
+            
+            for enemy in config.enemies:
+                enemy.mode = 2
 
         if not self.hidden:
             self.move()
