@@ -1,21 +1,21 @@
 import pygame
 import random
-import config
+from config import Config
 from classes import Explosion, Powerup, Spawn, Shield
 
 
 def collide():
     # Проверка столкновений противников и меток появления
-    hits = pygame.sprite.groupcollide(config.new_enemies, config.spawns, False, True)
+    hits = pygame.sprite.groupcollide(Config.new_enemies, Config.spawns, False, True)
     for hit in hits:
-        hit.remove(config.new_enemies)
-        hit.add(config.enemies)
+        hit.remove(Config.new_enemies)
+        hit.add(Config.enemies)
 
     # Проверка столкновений пули противника и пули игрока
-    hits = pygame.sprite.groupcollide(config.player_bullets, config.enemy_bullets, True, True)
+    hits = pygame.sprite.groupcollide(Config.player_bullets, Config.enemy_bullets, True, True)
 
     # Проверка столкновений пули игрока с элементом стены
-    hits = pygame.sprite.groupcollide(config.tiles, config.player_bullets, False, False)
+    hits = pygame.sprite.groupcollide(Config.tiles, Config.player_bullets, False, False)
     for hit in hits:
         if hit.type == "STEEL":
             if hits[hit][0].strength == 2:
@@ -24,7 +24,7 @@ def collide():
         if hit.type == "BRICK":
             hit.kill() # убрать элементы стены
             hits[hit][0].kill() # убрать пулю
-            config.graph.walls.remove((hit.rect.x, hit.rect.y)) # убрать элемент стены из графа
+            Config.graph.walls.remove((hit.rect.x, hit.rect.y)) # убрать элемент стены из графа
         if hit.type == "GRASS":
             pass
         if hit.type == "WATER":
@@ -33,7 +33,7 @@ def collide():
             pass
 
     # Проверка столкновений пули противника с элементом стены
-    hits = pygame.sprite.groupcollide(config.tiles, config.enemy_bullets, False, False)
+    hits = pygame.sprite.groupcollide(Config.tiles, Config.enemy_bullets, False, False)
     for hit in hits:
         if hit.type == "STEEL":
             if hits[hit][0].strength == 2:
@@ -50,44 +50,44 @@ def collide():
             pass
 
     # Проверка столкновений пули и щита
-    for shield in config.shields:
-        hits = pygame.sprite.spritecollide(config.shield, config.enemy_bullets, True)
+    for shield in Config.shields:
+        hits = pygame.sprite.spritecollide(Config.shield, Config.enemy_bullets, True)
 
     # Проверка столкновений пули противника и игрока
-    if not config.shield.alive():
-        hits = pygame.sprite.spritecollide(config.player, config.enemy_bullets, True)
+    if not Config.shield.alive():
+        hits = pygame.sprite.spritecollide(Config.player, Config.enemy_bullets, True)
         for hit in hits:
-            config.last_player_hit_time = config.now
-            if config.player.armor > 100:
-                config.player.armor -= 100
-            elif config.player.armor > 0:
-                config.player.life -= 100 - config.player.armor
-                config.player.armor = 0
-            elif config.player.armor == 0:
-                config.player.life -= 100
+            Config.last_player_hit_time = Config.now
+            if Config.player.armor > 100:
+                Config.player.armor -= 100
+            elif Config.player.armor > 0:
+                Config.player.life -= 100 - Config.player.armor
+                Config.player.armor = 0
+            elif Config.player.armor == 0:
+                Config.player.life -= 100
 
-            if config.player.life > 0:
+            if Config.player.life > 0:
                 try:
-                    config.hit_sound.play()
+                    Config.hit_sound.play()
                 except NameError:
                     pass
             else:
                 Explosion(hit.rect.center) 
-                for enemy in config.enemies:
+                for enemy in Config.enemies:
                     enemy.change_mode(2, 1)
-                config.player.hide()
-                config.player.lives -= 1
-                config.player.downgrade(config.player.rect.center)
+                Config.player.hide()
+                Config.player.lives -= 1
+                Config.player.downgrade(Config.player.rect.center)
                 try:
-                    config.explosion_sound.play()
+                    Config.explosion_sound.play()
                 except NameError:
                     pass
 
     # Проверка столкновений пули игрока и противника
-    hits = pygame.sprite.groupcollide(config.enemies, config.player_bullets, False, True)
+    hits = pygame.sprite.groupcollide(Config.enemies, Config.player_bullets, False, True)
     for hit in hits:
-        config.hits_interval = config.now - config.last_enemy_hit_time
-        config.last_enemy_hit_time = config.now
+        Config.hits_interval = Config.now - Config.last_enemy_hit_time
+        Config.last_enemy_hit_time = Config.now
 
         if hits[hit][0].strength == 2:
             if hit.armor > 200:
@@ -110,27 +110,27 @@ def collide():
 
         if hit.life > 0:
             try:
-                config.hit_sound.play()
+                Config.hit_sound.play()
             except NameError:
                 pass
         else:                       # Если противник убит
-            config.current_score = 100
-            config.current_score_centerx = hit.rect.centerx + 20
-            config.current_score_top = hit.rect.top + 20
-            config.current_enemy_count -= 1
-            config.remaining_enemy_count -= 1
-            if config.current_enemy_count == 2:
-                config.enemy_respawn_time = config.now
-            if config.remaining_enemy_count >= 3:
-                if config.current_enemy_count == 2:
-                    Spawn(config.spawn_coordinates_x[config.total_enemy_count]) 
-                if config.current_enemy_count == 1:
-                    Spawn(config.spawn_coordinates_x[config.total_enemy_count + 1]) 
-            config.total_score += 100
+            Config.current_score = 100
+            Config.current_score_centerx = hit.rect.centerx + 20
+            Config.current_score_top = hit.rect.top + 20
+            Config.current_enemy_count -= 1
+            Config.remaining_enemy_count -= 1
+            if Config.current_enemy_count == 2:
+                Config.enemy_respawn_time = Config.now
+            if Config.remaining_enemy_count >= 3:
+                if Config.current_enemy_count == 2:
+                    Spawn(Config.spawn_coordinates_x[Config.total_enemy_count]) 
+                if Config.current_enemy_count == 1:
+                    Spawn(Config.spawn_coordinates_x[Config.total_enemy_count + 1]) 
+            Config.total_score += 100
             Explosion(hit.rect.center)
             hit.kill()  
             try:
-                config.explosion_sound.play()
+                Config.explosion_sound.play()
             except NameError:
                 pass
             
@@ -138,137 +138,137 @@ def collide():
                 Powerup(hit.rect.center)     
     
     # Проверка столкновений игрока с элементом стены
-    hits = pygame.sprite.spritecollide(config.player, config.tiles, False)
+    hits = pygame.sprite.spritecollide(Config.player, Config.tiles, False)
     for hit in hits:
         if hit.type == "STEEL":
-            config.player.stop()
+            Config.player.stop()
             break
         if hit.type == "BRICK":
-            config.player.stop()
+            Config.player.stop()
             break
         if hit.type == "GRASS":
             pass
         if hit.type == "WATER":
-            config.player.stop()
+            Config.player.stop()
             break
         if hit.type == "ICE":
             pass
 
     # Проверка столкновений противника с элементом стены
-    hits = pygame.sprite.groupcollide(config.enemies, config.tiles, False, False)
+    hits = pygame.sprite.groupcollide(Config.enemies, Config.tiles, False, False)
     for hit in hits:
         for tile in hits[hit]:
             if tile.type == "STEEL":
                 hit.stop()
-                hit.last_rotate = config.now
+                hit.last_rotate = Config.now
                 hit.rotate()
                 break
             if tile.type == "BRICK":
                 hit.stop()
-                hit.last_rotate = config.now
+                hit.last_rotate = Config.now
                 hit.rotate()
                 break
             if tile.type == "GRASS":
                 pass
             if tile.type == "WATER":
                 hit.stop()
-                hit.last_rotate = config.now
+                hit.last_rotate = Config.now
                 hit.rotate()
                 break
             if tile.type == "ICE":
                 pass
 
     # Проверка столкновений игрока и улучшений
-    hits = pygame.sprite.spritecollide(config.player, config.powerups, True)
+    hits = pygame.sprite.spritecollide(Config.player, Config.powerups, True)
     for hit in hits:
-        config.powerup_hit_time = config.now
-        config.current_score = 100
-        config.current_score_centerx = hit.rect.centerx
-        config.current_score_top = hit.rect.top
-        config.total_score += 100
+        Config.powerup_hit_time = Config.now
+        Config.current_score = 100
+        Config.current_score_centerx = hit.rect.centerx
+        Config.current_score_top = hit.rect.top
+        Config.total_score += 100
         try:
-            config.powerup_sound.play()
+            Config.powerup_sound.play()
         except NameError:
             pass
         if hit.type == "gun":
-            if config.enemies:
-                config.new_enemies_number = config.remaining_enemy_count - config.current_enemy_count # Количество противников,
-                for enemy in config.enemies:                              # которое нужно добавить после очистки карты
+            if Config.enemies:
+                Config.new_enemies_number = Config.remaining_enemy_count - Config.current_enemy_count # Количество противников,
+                for enemy in Config.enemies:                              # которое нужно добавить после очистки карты
                     enemy.kill()
-                    config.remaining_enemy_count -= 1
-                config.current_enemy_count = 0
-                config.enemy_respawn_time = config.now
-                if config.new_enemies_number != 0:
-                    Spawn(config.spawn_coordinates_x[config.total_enemy_count])
-                    config.new_enemies_number -= 1
+                    Config.remaining_enemy_count -= 1
+                Config.current_enemy_count = 0
+                Config.enemy_respawn_time = Config.now
+                if Config.new_enemies_number != 0:
+                    Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
+                    Config.new_enemies_number -= 1
         if hit.type == "shield":
-            if config.shield.alive():
-                config.shield.kill()
-            config.shield = Shield(config.player.rect.center)
+            if Config.shield.alive():
+                Config.shield.kill()
+            Config.shield = Shield(Config.player.rect.center)
         if hit.type == "base":
-            config.base.upgrade_wall()
+            Config.base.upgrade_wall()
         if hit.type == "levelup":
-            config.player.upgrade(config.player.rect.center, config.player.direction)
+            Config.player.upgrade(Config.player.rect.center, Config.player.direction)
         if hit.type == "life":
-            config.player.lives += 1
-            if config.player.lives >= 5:
-                config.player.lives = 5
-                config.player.life = 100
+            Config.player.lives += 1
+            if Config.player.lives >= 5:
+                Config.player.lives = 5
+                Config.player.life = 100
         if hit.type == "time":
-            config.frozen_time = True
-            config.freeze_time = config.now
-            for enemy in config.enemies:
+            Config.frozen_time = True
+            Config.freeze_time = Config.now
+            for enemy in Config.enemies:
                 enemy.frozen = True 
 
     # Проверка столкновений противника и игрока
-    hits = pygame.sprite.spritecollide(config.player, config.enemies, False)
+    hits = pygame.sprite.spritecollide(Config.player, Config.enemies, False)
     for hit in hits:
-        config.player.stop()
+        Config.player.stop()
         hit.stop()
-        hit.last_rotate = config.now
+        hit.last_rotate = Config.now
         hit.reverse()
 
     # Проверка столкновений противников друг с другом
-    for enemy in config.enemies:
-        enemy.remove(config.enemies)        
-        hits = pygame.sprite.spritecollide(enemy, config.enemies, False)
+    for enemy in Config.enemies:
+        enemy.remove(Config.enemies)        
+        hits = pygame.sprite.spritecollide(enemy, Config.enemies, False)
         for hit in hits:
             if hit.frozen != True:
                 hit.stop()
-                hit.last_rotate = config.now
+                hit.last_rotate = Config.now
                 hit.reverse()
             if enemy.frozen != True:
                 enemy.stop() 
-                enemy.last_rotate = config.now
+                enemy.last_rotate = Config.now
                 enemy.reverse()            
             
-        enemy.add(config.enemies)
+        enemy.add(Config.enemies)
 
     # Проверка столкновений игрока и базы
-    if pygame.sprite.collide_rect(config.player, config.base):
-        config.player.stop()
+    if pygame.sprite.collide_rect(Config.player, Config.base):
+        Config.player.stop()
 
     # Проверка столкновений противников и базы
-    hits = pygame.sprite.spritecollide(config.base, config.enemies, False)
+    hits = pygame.sprite.spritecollide(Config.base, Config.enemies, False)
     for hit in hits:
         hit.stop()
-        hit.last_rotate = config.now
+        hit.last_rotate = Config.now
         hit.rotate()
 
     # Проверка столкновений пули игрока и базы
-    hits1 = pygame.sprite.spritecollide(config.base, config.player_bullets, True)
+    hits1 = pygame.sprite.spritecollide(Config.base, Config.player_bullets, True)
 
     # Проверка столкновений пули противников и базы
-    hits2 = pygame.sprite.spritecollide(config.base, config.enemy_bullets, True)
+    hits2 = pygame.sprite.spritecollide(Config.base, Config.enemy_bullets, True)
     if hits1 or hits2:
-        if not config.base.destroyed:
-            Explosion(config.base.rect.center)
-            config.base.destroyed = True
-            config.base.destroyed_time = config.now
+        if not Config.base.destroyed:
+            Explosion(Config.base.rect.center)
+            Config.base.destroyed = True
+            Config.base.destroyed_time = Config.now
             try:
-                config.game_over_sound.play()
+                Config.game_over_sound.play()
             except NameError:
                 pass
-            config.game_over_string = "GAME OVER"
-            config.game_over_string_centerx = config.base.rect.centerx
-            config.game_over_string_top = config.base.rect.top
+            Config.game_over_string = "GAME OVER"
+            Config.game_over_string_centerx = Config.base.rect.centerx
+            Config.game_over_string_top = Config.base.rect.top

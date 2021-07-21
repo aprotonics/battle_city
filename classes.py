@@ -1,13 +1,13 @@
 import pygame
 import random
-import config
+from config import Config
 
 
 class Base(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = config.base_images[0]
-        self.image.set_colorkey(config.BLACK)
+        self.image = Config.base_images[0]
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = 300
         self.rect.y = 600
@@ -17,10 +17,10 @@ class Base(pygame.sprite.Sprite):
         self.destroyed = False
         self.destroyed_time = None
 
-        config.all_sprites.add(self)
+        Config.all_sprites.add(self)
 
     def clear_wall(self):
-        for tile in config.tiles: 
+        for tile in Config.tiles: 
             if (5 * 50 <= tile.rect.x < 6 * 50 and 11 * 50 <= tile.rect.y < 12 * 50 or
                 6 * 50 <= tile.rect.x < 7 * 50 and 11 * 50 <= tile.rect.y < 12 * 50 or
                 7 * 50 <= tile.rect.x < 8 * 50 and 11 * 50 <= tile.rect.y < 12 * 50 or
@@ -29,21 +29,21 @@ class Base(pygame.sprite.Sprite):
                 tile.kill()
     
     def create_wall(self, tile_type: str):
-        x_left = config.base.rect.x - 50
+        x_left = Config.base.rect.x - 50
 
         # Создание трёх верхних блоков
         for i in range(3):  
-            tile = Tile(x_left + i * 50, config.base.rect.y - 50, tile_type)
-            tile = Tile(x_left + 25 + i * 50, config.base.rect.y - 50, tile_type)
-            tile = Tile(x_left + i * 50, config.base.rect.y - 25, tile_type)
-            tile = Tile(x_left + 25 + i * 50, config.base.rect.y - 25, tile_type)
+            tile = Tile(x_left + i * 50, Config.base.rect.y - 50, tile_type)
+            tile = Tile(x_left + 25 + i * 50, Config.base.rect.y - 50, tile_type)
+            tile = Tile(x_left + i * 50, Config.base.rect.y - 25, tile_type)
+            tile = Tile(x_left + 25 + i * 50, Config.base.rect.y - 25, tile_type)
 
         # Создание двух боковых блоков
         for i in range(2):
-            tile = Tile(x_left + i * 100, config.base.rect.y, tile_type)
-            tile = Tile(x_left + 25 + i * 100, config.base.rect.y, tile_type)
-            tile = Tile(x_left + i * 100, config.base.rect.y + 25, tile_type)
-            tile = Tile(x_left + 25 + i * 100, config.base.rect.y + 25, tile_type)
+            tile = Tile(x_left + i * 100, Config.base.rect.y, tile_type)
+            tile = Tile(x_left + 25 + i * 100, Config.base.rect.y, tile_type)
+            tile = Tile(x_left + i * 100, Config.base.rect.y + 25, tile_type)
+            tile = Tile(x_left + 25 + i * 100, Config.base.rect.y + 25, tile_type)
 
     def upgrade_wall(self):
         self.has_shield = True
@@ -65,8 +65,8 @@ class Base(pygame.sprite.Sprite):
                 self.downgrade_wall()
         
         if self.destroyed:
-            self.image = config.base_images[1]
-            self.image.set_colorkey(config.BLACK)
+            self.image = Config.base_images[1]
+            self.image.set_colorkey(Config.BLACK)
             self.rect = self.image.get_rect()
             self.rect.x = 300
             self.rect.y = 600
@@ -75,8 +75,8 @@ class Base(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, centerx, centery, direction, speed=10, strength=1):
         pygame.sprite.Sprite.__init__(self)
-        self.image = config.bullet_img
-        self.image.fill(config.YELLOW)
+        self.image = Config.bullet_img
+        self.image.fill(Config.YELLOW)
         self.rect = self.image.get_rect()
         self.rect.center = (centerx, centery)
         self.direction = direction
@@ -85,8 +85,8 @@ class Bullet(pygame.sprite.Sprite):
         self.strength = strength
         self.rotate(self.direction)
         
-        config.all_sprites.add(self)
-        config.bullets.add(self)
+        Config.all_sprites.add(self)
+        Config.bullets.add(self)
 
     def rotate(self, direction):
         angle = 0
@@ -98,10 +98,10 @@ class Bullet(pygame.sprite.Sprite):
             angle = -180
         elif direction == "left":
             angle = 90
-        new_image = pygame.transform.rotate(config.bullet_img, angle)
+        new_image = pygame.transform.rotate(Config.bullet_img, angle)
         old_center = self.rect.center
         self.image = new_image
-        self.image.fill(config.YELLOW)
+        self.image.fill(Config.YELLOW)
         self.rect = self.image.get_rect()
         self.rect.center = old_center
 
@@ -113,11 +113,11 @@ class Bullet(pygame.sprite.Sprite):
                 self.kill()
         if self.direction == "right":
             self.rect.x += self.speedx
-            if self.rect.left > config.WIDTH:
+            if self.rect.left > Config.WIDTH:
                 self.kill()
         if self.direction == "down":
             self.rect.y -= self.speedy
-            if self.rect.top > config.HEIGHT:
+            if self.rect.top > Config.HEIGHT:
                 self.kill()
         if self.direction == "left":
             self.rect.x -= self.speedx
@@ -136,27 +136,27 @@ class EnemyBullet(Bullet):
 class Explosion(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.image = config.explosion_anim[0]
-        self.image.set_colorkey(config.BLACK)
+        self.image = Config.explosion_anim[0]
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center
         self.frame = 0
         self.last_update = pygame.time.get_ticks()
         self.frame_rate = 120
 
-        config.all_sprites.add(self)
+        Config.all_sprites.add(self)
     
     def update(self):
         now = pygame.time.get_ticks()
         if now - self.last_update > self.frame_rate:
             self.last_update = now
             self.frame += 1
-            if self.frame == len(config.explosion_anim):
+            if self.frame == len(Config.explosion_anim):
                 self.kill()
             else:
                 center = self.rect.center
-                self.image = config.explosion_anim[self.frame]
-                self.image.set_colorkey(config.BLACK)
+                self.image = Config.explosion_anim[self.frame]
+                self.image.set_colorkey(Config.BLACK)
                 self.rect = self.image.get_rect()
                 self.rect.center = center
 
@@ -165,13 +165,13 @@ class Powerup(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
         self.type = random.choice(["gun", "shield", "base", "levelup", "life", "time"])
-        self.image = config.powerup_images[self.type] # ["gun", "shield", "base", "levelup", "life", "time"]
-        self.image.set_colorkey(config.BLACK)
+        self.image = Config.powerup_images[self.type] # ["gun", "shield", "base", "levelup", "life", "time"]
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center
 
-        config.all_sprites.add(self)
-        config.powerups.add(self)
+        Config.all_sprites.add(self)
+        Config.powerups.add(self)
 
     def update(self):
         pass
@@ -180,8 +180,8 @@ class Powerup(pygame.sprite.Sprite):
 class Spawn(pygame.sprite.Sprite):
     def __init__(self, x):
         pygame.sprite.Sprite.__init__(self)
-        self.image = config.spawn_images[0]
-        self.image.set_colorkey(config.BLACK)
+        self.image = Config.spawn_images[0]
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = 0
@@ -189,8 +189,8 @@ class Spawn(pygame.sprite.Sprite):
         self.last_update = pygame.time.get_ticks()
         self.frame_rate = 50
 
-        config.all_sprites.add(self)
-        config.spawns.add(self)
+        Config.all_sprites.add(self)
+        Config.spawns.add(self)
 
     def update(self):
         now = pygame.time.get_ticks()
@@ -198,8 +198,8 @@ class Spawn(pygame.sprite.Sprite):
             self.last_update = now
             self.frame = int(not bool(self.frame)) # 0 либо 1
             centerx = self.rect.centerx
-            self.image = config.spawn_images[self.frame]
-            self.image.set_colorkey(config.BLACK)
+            self.image = Config.spawn_images[self.frame]
+            self.image.set_colorkey(Config.BLACK)
             self.rect = self.image.get_rect()
             self.rect.centerx = centerx
             self.rect.y = 0
@@ -208,8 +208,8 @@ class Spawn(pygame.sprite.Sprite):
 class Shield(pygame.sprite.Sprite):
     def __init__(self, center):
         pygame.sprite.Sprite.__init__(self)
-        self.image = config.shield_images[0]
-        self.image.set_colorkey(config.BLACK)
+        self.image = Config.shield_images[0]
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center 
         self.frame = 0
@@ -218,8 +218,8 @@ class Shield(pygame.sprite.Sprite):
         self.spawn_time = pygame.time.get_ticks()
         self.existance_time = 4000
 
-        config.all_sprites.add(self)
-        config.shields.add(self)
+        Config.all_sprites.add(self)
+        Config.shields.add(self)
 
     def update(self):
         now = pygame.time.get_ticks()
@@ -228,10 +228,10 @@ class Shield(pygame.sprite.Sprite):
         if now - self.last_update > self.frame_rate:
             self.last_update = now
             self.frame = int(not bool(self.frame))
-            self.image = config.shield_images[self.frame]
-            self.image.set_colorkey(config.BLACK)
+            self.image = Config.shield_images[self.frame]
+            self.image.set_colorkey(Config.BLACK)
             self.rect = self.image.get_rect()
-        self.rect.center = config.player.rect.center
+        self.rect.center = Config.player.rect.center
 
 
 class Tile(pygame.sprite.Sprite):
@@ -241,8 +241,8 @@ class Tile(pygame.sprite.Sprite):
         self.y = y
         self.layer = 0
         self.type = tile_type
-        self.image = config.tile_images[self.type]
-        self.image.set_colorkey(config.BLACK)
+        self.image = Config.tile_images[self.type]
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y     
@@ -261,12 +261,12 @@ class Tile(pygame.sprite.Sprite):
         if self.type == "ICE":
             self.layer = -1
 
-        config.all_sprites.add(self)
-        config.tiles.add(self)
-        config.layers.add(self)
+        Config.all_sprites.add(self)
+        Config.tiles.add(self)
+        Config.layers.add(self)
 
         if self.type != "GRASS":
-            config.graph.walls.append((x, y))
+            Config.graph.walls.append((x, y))
         
     def update(self):
         if self.type == 'WATER':
@@ -275,11 +275,11 @@ class Tile(pygame.sprite.Sprite):
                 self.last_update = now
                 self.subtype = int(not bool(self.subtype))
                 if self.subtype == 1:
-                    self.image = config.tile_images["WATER2"]
-                    self.image.set_colorkey(config.BLACK)   
+                    self.image = Config.tile_images["WATER2"]
+                    self.image.set_colorkey(Config.BLACK)   
                 if self.subtype == 0:
-                    self.image = config.tile_images["WATER"]
-                    self.image.set_colorkey(config.BLACK)
+                    self.image = Config.tile_images["WATER"]
+                    self.image.set_colorkey(Config.BLACK)
                 self.rect = self.image.get_rect()
                 self.rect.x = self.x
                 self.rect.y = self.y

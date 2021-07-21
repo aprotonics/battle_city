@@ -1,7 +1,7 @@
 import pygame
 import random
 import datetime
-import config
+from config import Config
 from structures import PriorityQueue
 from classes import EnemyBullet
 
@@ -9,7 +9,7 @@ from classes import EnemyBullet
 def create_path(start, goal):
     start_time = datetime.datetime.now()
 
-    came_from, cost_so_far, iterations = a_star_search(config.graph, start, goal)
+    came_from, cost_so_far, iterations = a_star_search(Config.graph, start, goal)
 
     current = goal
     path = [current]
@@ -66,9 +66,9 @@ class Enemy(pygame.sprite.Sprite):
         self.spawn_time = pygame.time.get_ticks()
         self.mode = 1
         self.mode1_duration = 5000
-        self.rand_image = random.choice(config.enemy_images)[0]
+        self.rand_image = random.choice(Config.enemy_images)[0]
         self.image = self.rand_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = 0
@@ -77,7 +77,7 @@ class Enemy(pygame.sprite.Sprite):
         self.moving_time = 0
         self.moving_time = 3000 # Частота смены направления движения
         self.last_rotate = pygame.time.get_ticks()
-        self.speed = config.enemy_speed
+        self.speed = Config.enemy_speed
         self.speedx = 0
         self.speedy = self.speed
 
@@ -89,8 +89,8 @@ class Enemy(pygame.sprite.Sprite):
         self.armor = 0
         self.frozen = False
 
-        config.all_sprites.add(self)
-        config.new_enemies.add(self)
+        Config.all_sprites.add(self)
+        Config.new_enemies.add(self)
 
     def __init_mode2__(self):
         self.mode = 2
@@ -101,7 +101,7 @@ class Enemy(pygame.sprite.Sprite):
 
         self.start = (self.graph_coordinate_x, self.graph_coordinate_y)
         self.step = 0
-        self.goal = (config.player.graph_coordinate_x, config.player.graph_coordinate_y)
+        self.goal = (Config.player.graph_coordinate_x, Config.player.graph_coordinate_y)
         print(self.start)
         print(self.goal)
         self.path_to_player = create_path(self.start, self.goal)
@@ -133,7 +133,7 @@ class Enemy(pygame.sprite.Sprite):
         new_image = pygame.transform.rotate(self.rand_image, angle)
         old_center = self.rect.center
         self.image = new_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = old_center
 
@@ -150,7 +150,7 @@ class Enemy(pygame.sprite.Sprite):
         new_image = pygame.transform.rotate(self.rand_image, angle)
         old_center = self.rect.center
         self.image = new_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = old_center
     
@@ -170,7 +170,7 @@ class Enemy(pygame.sprite.Sprite):
         new_image = pygame.transform.rotate(self.image, 180)
         old_center = self.rect.center
         self.image = new_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = old_center
 
@@ -246,7 +246,7 @@ class Enemy(pygame.sprite.Sprite):
                 x = self.rect.left
                 y = self.rect.centery
             enemy_bullet = EnemyBullet(x, y, self.direction, speed=self.bullet_speed, strength=self.bullet_strength)
-            config.enemy_bullets.add(enemy_bullet)
+            Config.enemy_bullets.add(enemy_bullet)
 
     def update_path(self, start, goal): 
         print(start, goal)
@@ -281,8 +281,8 @@ class Enemy(pygame.sprite.Sprite):
                     self.rotate() 
 
                 # Проверка на выход за пределы экрана
-                if (self.rect.right > config.WIDTH or self.rect.left < 0 or
-                    self.rect.bottom > config.HEIGHT or self.rect.top < 0):
+                if (self.rect.right > Config.WIDTH or self.rect.left < 0 or
+                    self.rect.bottom > Config.HEIGHT or self.rect.top < 0):
                     self.stop()
                     self.rotate()
 
@@ -291,7 +291,7 @@ class Enemy(pygame.sprite.Sprite):
                 if now - self.path_update_time > self.path_update_delay:
                     self.path_update_time = now
                     self.start = (self.current_position[0], self.current_position[1])
-                    self.goal = (config.player.graph_coordinate_x, config.player.graph_coordinate_y)
+                    self.goal = (Config.player.graph_coordinate_x, Config.player.graph_coordinate_y)
                     self.update_path(self.start, self.goal)
                     # print("path_to_player", self.path_to_player)
                     # print("coordinates", (self.rect.x, self.rect.y))
@@ -304,7 +304,7 @@ class Enemy(pygame.sprite.Sprite):
                 if self.current_position == self.next_position:
                     self.path_update_time = now
                     self.start = (self.current_position[0], self.current_position[1])
-                    self.goal = (config.player.graph_coordinate_x, config.player.graph_coordinate_y)
+                    self.goal = (Config.player.graph_coordinate_x, Config.player.graph_coordinate_y)
                     self.update_path(self.start, self.goal)
                     self.current_position = self.path_to_player[self.step]
                     if self.step < len(self.path_to_player) - 1:
@@ -318,14 +318,14 @@ class Enemy(pygame.sprite.Sprite):
 class NormalEnemy(Enemy):
     def __init__(self, x):
         super().__init__(x)
-        self.rand_image = random.choice(config.enemy_images)[0]
+        self.rand_image = random.choice(Config.enemy_images)[0]
         self.image = self.rand_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = 0  
         self.tank_type = "normal"
-        self.speed = config.enemy_speed
+        self.speed = Config.enemy_speed
         self.speedy = self.speed
         self.bullet_speed = 5
         self.bullet_strength = 1
@@ -335,14 +335,14 @@ class NormalEnemy(Enemy):
 class FastEnemy(Enemy):
     def __init__(self, x):
         super().__init__(x)
-        self.rand_image = random.choice(config.enemy_images)[1]
+        self.rand_image = random.choice(Config.enemy_images)[1]
         self.image = self.rand_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = 0
         self.tank_type = "fast"
-        self.speed = config.enemy_speed * 1.4
+        self.speed = Config.enemy_speed * 1.4
         self.speedy = self.speed
         self.bullet_speed = 15
         self.bullet_strength = 1
@@ -352,14 +352,14 @@ class FastEnemy(Enemy):
 class EnhancedEnemy(Enemy):
     def __init__(self, x):
         super().__init__(x)
-        self.rand_image = random.choice(config.enemy_images)[2]
+        self.rand_image = random.choice(Config.enemy_images)[2]
         self.image = self.rand_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = 0
         self.tank_type = "enhanced"
-        self.speed = config.enemy_speed
+        self.speed = Config.enemy_speed
         self.speedy = self.speed
         self.bullet_speed = 10
         self.bullet_strength = 1
@@ -369,14 +369,14 @@ class EnhancedEnemy(Enemy):
 class HeavyEnemy(Enemy):
     def __init__(self, x):
         super().__init__(x)
-        self.rand_image = random.choice(config.enemy_images)[3]
+        self.rand_image = random.choice(Config.enemy_images)[3]
         self.image = self.rand_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = 0
         self.tank_type = "heavy"
-        self.speed = config.enemy_speed
+        self.speed = Config.enemy_speed
         self.speedy = self.speed
         self.bullet_speed = 10
         self.bullet_strength = 1

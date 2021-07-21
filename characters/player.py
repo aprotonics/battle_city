@@ -1,5 +1,5 @@
 import pygame
-import config
+from config import Config
 from classes import PlayerBullet, Shield
 
 
@@ -8,9 +8,9 @@ class Player(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.first_image = image
         self.image = self.first_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
-        self.rect.x,  self.rect.y = config.goal
+        self.rect.x,  self.rect.y = Config.goal
         self.graph_coordinate_x = self.rect.x
         self.graph_coordinate_y = self.rect.y
         self.direction = "up"
@@ -43,7 +43,7 @@ class Player(pygame.sprite.Sprite):
             self.armor = 150
             self.bullet_strength = 2
 
-        config.all_sprites.add(self)
+        Config.all_sprites.add(self)
 
     def rotate(self, direction):
         angle = 0
@@ -58,7 +58,7 @@ class Player(pygame.sprite.Sprite):
         new_image = pygame.transform.rotate(self.first_image, angle)
         old_center = self.rect.center
         self.image = new_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = old_center
 
@@ -71,19 +71,19 @@ class Player(pygame.sprite.Sprite):
         if keystate[pygame.K_UP] == True:
             self.direction = "up"
             self.rotate(self.direction)
-            self.speedy = -config.player_speed
+            self.speedy = -Config.player_speed
         elif keystate[pygame.K_RIGHT] == True:
             self.direction = "right"
             self.rotate(self.direction)  
-            self.speedx = config.player_speed
+            self.speedx = Config.player_speed
         elif keystate[pygame.K_DOWN] == True:
             self.direction = "down"
             self.rotate(self.direction) 
-            self.speedy = config.player_speed  
+            self.speedy = Config.player_speed  
         elif keystate[pygame.K_LEFT] == True:
             self.direction = "left"
             self.rotate(self.direction) 
-            self.speedx = -config.player_speed
+            self.speedx = -Config.player_speed
 
         self.rect.x += self.speedx
         self.sum_x += self.speedx
@@ -113,7 +113,7 @@ class Player(pygame.sprite.Sprite):
             self.graph_coordinate_y = self.rect.y - self.sum_y
 
         if (keystate[pygame.K_SPACE] == True and
-        (config.current_enemy_count > 1 or config.remaining_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
+        (Config.current_enemy_count > 1 or Config.remaining_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
             self.shoot()
 
     def stop(self):
@@ -147,24 +147,24 @@ class Player(pygame.sprite.Sprite):
                 x = self.rect.left
                 y = self.rect.centery
             player_bullet = PlayerBullet(x, y, self.direction, speed=self.bullet_speed, strength=self.bullet_strength)
-            config.player_bullets.add(player_bullet)
+            Config.player_bullets.add(player_bullet)
             try:
-                config.shoot_sound.play()
+                Config.shoot_sound.play()
             except NameError:
                 pass
 
     def hide(self):
         self.hidden = True
         self.hide_timer = pygame.time.get_ticks()
-        self.rect.center = (config.WIDTH / 2 - 100, config.HEIGHT + 200)
+        self.rect.center = (Config.WIDTH / 2 - 100, Config.HEIGHT + 200)
 
     def upgrade(self, center, direction):
         self.level += 1
         if self.level >= 2:
             self.level = 2
-        self.first_image = config.player_images[self.level]
+        self.first_image = Config.player_images[self.level]
         self.image = self.first_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center
         self.direction = direction
@@ -182,9 +182,9 @@ class Player(pygame.sprite.Sprite):
 
     def downgrade(self, center):
         self.level = 0
-        self.first_image = config.player_images[self.level]
+        self.first_image = Config.player_images[self.level]
         self.image = self.first_image
-        self.image.set_colorkey(config.BLACK)
+        self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = center
         self.shoot_delay = 500
@@ -194,18 +194,18 @@ class Player(pygame.sprite.Sprite):
 
     def player_in_screen(self):
         # Проверка на выход за пределы экрана
-        if self.rect.right > config.WIDTH:
+        if self.rect.right > Config.WIDTH:
             self.stop()
         if self.rect.left <= 0:
             self.stop()
-        if self.rect.bottom > config.HEIGHT:
+        if self.rect.bottom > Config.HEIGHT:
             self.stop()
         if self.rect.top <= 0:
             self.stop()
     
     def player_vs_tiles_colide(self):
         # Проверка столкновений игрока с элементом стены
-        hits = pygame.sprite.spritecollide(self, config.tiles, False)
+        hits = pygame.sprite.spritecollide(self, Config.tiles, False)
         for hit in hits:
             if hit.type == "STEEL":
                 self.stop()
@@ -225,17 +225,17 @@ class Player(pygame.sprite.Sprite):
         # Показать, если скрыто
         if self.hidden and pygame.time.get_ticks() - self.hide_timer > 2000:
             self.hidden = False
-            self.image = config.player_images[0]
-            self.image.set_colorkey(config.BLACK)
+            self.image = Config.player_images[0]
+            self.image.set_colorkey(Config.BLACK)
             self.rect = self.image.get_rect()
-            self.rect.x,  self.rect.y = config.goal
+            self.rect.x,  self.rect.y = Config.goal
             self.graph_coordinate_x = self.rect.x
             self.graph_coordinate_y = self.rect.y
             self.direction = "up"
             self.life = 100
             shield = Shield(self.rect.center)
             
-            for enemy in config.enemies:
+            for enemy in Config.enemies:
                 enemy.mode = 2
 
         if not self.hidden:

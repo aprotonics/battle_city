@@ -4,7 +4,7 @@ import os
 import sys
 import math
 import datetime
-import config
+from config import Config
 from structures import PriorityQueue, GridWithWeights
 from characters.player import Player
 from characters.mob import Enemy, NormalEnemy, FastEnemy, EnhancedEnemy, HeavyEnemy
@@ -16,7 +16,7 @@ import render
 def create_path(start, goal):
     start_time = datetime.datetime.now()
 
-    came_from, cost_so_far, iterations = a_star_search(config.graph, start, goal)
+    came_from, cost_so_far, iterations = a_star_search(Config.graph, start, goal)
 
     current = goal
     path = [current]
@@ -69,7 +69,7 @@ def a_star_search(graph, start, goal):
 
 def get_time():
     now = pygame.time.get_ticks()
-    current_seconds = math.trunc((now - config.start_time) / 1000)
+    current_seconds = math.trunc((now - Config.start_time) / 1000)
     current_minutes = 0
     while current_seconds >= 60:
         current_minutes += 1
@@ -83,7 +83,7 @@ def get_time():
 
 
 def draw_text(surf, x, y, text, size, color=(255, 255, 255)):
-    font = pygame.font.Font(config.font_name, size)
+    font = pygame.font.Font(Config.font_name, size)
     text_surface = font.render(text, True, color)
     text_rect = text_surface.get_rect()
     text_rect.midtop = (x, y)
@@ -91,14 +91,14 @@ def draw_text(surf, x, y, text, size, color=(255, 255, 255)):
 
 
 def show_start_screen():
-    config.screen.fill(config.BLACK)
-    draw_text(config.screen, config.WIDTH / 2, config.HEIGHT / 4, "Battle City", 64)
-    draw_text(config.screen, config.WIDTH / 2, config.HEIGHT / 2, "Arrow keys to move, Space to fire", 22)
-    draw_text(config.screen, config.WIDTH / 2, config.HEIGHT * 3 / 4, "Press ENTER to begin", 18)
+    Config.screen.fill(Config.BLACK)
+    draw_text(Config.screen, Config.WIDTH / 2, Config.HEIGHT / 4, "Battle City", 64)
+    draw_text(Config.screen, Config.WIDTH / 2, Config.HEIGHT / 2, "Arrow keys to move, Space to fire", 22)
+    draw_text(Config.screen, Config.WIDTH / 2, Config.HEIGHT * 3 / 4, "Press ENTER to begin", 18)
     pygame.display.flip()
     waiting = True
     while waiting:
-        config.clock.tick(config.FPS)
+        Config.clock.tick(Config.FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -108,13 +108,13 @@ def show_start_screen():
 
 
 def show_game_over_screen():
-    config.screen.fill(config.BLACK)
-    draw_text(config.screen, config.WIDTH / 2, config.HEIGHT / 2 - 70, "GAME OVER", 70)
-    draw_text(config.screen, config.WIDTH / 2, config.HEIGHT * 3 / 4, "Press any key to continue", 18)
+    Config.screen.fill(Config.BLACK)
+    draw_text(Config.screen, Config.WIDTH / 2, Config.HEIGHT / 2 - 70, "GAME OVER", 70)
+    draw_text(Config.screen, Config.WIDTH / 2, Config.HEIGHT * 3 / 4, "Press any key to continue", 18)
     pygame.display.flip()
     waiting = True
     while waiting:
-        config.clock.tick(config.FPS)
+        Config.clock.tick(Config.FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -140,35 +140,29 @@ try:
     # pygame.mixer.quit()
 except Exception:
     pass
-config.screen = pygame.display.set_mode((config.WIDTH, config.HEIGHT))
+Config.screen = pygame.display.set_mode((Config.WIDTH, Config.HEIGHT))
 pygame.display.set_caption("Battle city")
-config.clock = pygame.time.Clock()
-config.font_name = pygame.font.match_font("Arial")
+Config.clock = pygame.time.Clock()
+Config.font_name = pygame.font.match_font("Arial")
 
 
 
 
-config.graph = GridWithWeights(config.WIDTH, config.HEIGHT)
+Config.graph = GridWithWeights(Config.WIDTH, Config.HEIGHT)
 
 ## Алгоритм поиска пути
-config.start = (0 * 50, 0 * 50)
-config.goal = (4 * 50, 12 * 50)
+Config.start = (0 * 50, 0 * 50)
+Config.goal = (4 * 50, 12 * 50)
 
 # Создание пути
-config.path = create_path(config.start, config.goal)
+Config.path = create_path(Config.start, Config.goal)
 
-print(config.path)
+print(Config.path)
 print()
 
 
 
 # Цикл игры
-config.appearance_delay = 1500
-config.player_speed = 4
-config.enemy_speed = 2
-config.player_image = config.player_images[0]
-config.player_level = 0
-config.player_lives = 3
 before_start = True
 level_won = False
 running = True
@@ -177,73 +171,73 @@ while running:
     if before_start: 
         show_start_screen()
         before_start = False
-        config.start_time = pygame.time.get_ticks()
-        config.enemy_respawn_time = config.start_time
-        config.last_enemy_hit_time = config.start_time
-        config.last_player_hit_time = config.start_time
-        config.powerup_hit_time = config.start_time
+        Config.start_time = pygame.time.get_ticks()
+        Config.enemy_respawn_time = Config.start_time
+        Config.last_enemy_hit_time = Config.start_time
+        Config.last_player_hit_time = Config.start_time
+        Config.powerup_hit_time = Config.start_time
         try:
-            config.game_start_sound.play()
+            Config.game_start_sound.play()
         except NameError:
             pass
-        config.all_sprites = pygame.sprite.Group()
-        config.enemies = pygame.sprite.Group()
-        config.new_enemies = pygame.sprite.Group()
-        config.bullets = pygame.sprite.Group()
-        config.player_bullets = pygame.sprite.Group()
-        config.enemy_bullets = pygame.sprite.Group()
-        config.powerups = pygame.sprite.Group()
-        config.tiles = pygame.sprite.Group()
-        config.spawns = pygame.sprite.Group()
-        config.shields = pygame.sprite.Group()
-        config.layers = pygame.sprite.LayeredUpdates()
+        Config.all_sprites = pygame.sprite.Group()
+        Config.enemies = pygame.sprite.Group()
+        Config.new_enemies = pygame.sprite.Group()
+        Config.bullets = pygame.sprite.Group()
+        Config.player_bullets = pygame.sprite.Group()
+        Config.enemy_bullets = pygame.sprite.Group()
+        Config.powerups = pygame.sprite.Group()
+        Config.tiles = pygame.sprite.Group()
+        Config.spawns = pygame.sprite.Group()
+        Config.shields = pygame.sprite.Group()
+        Config.layers = pygame.sprite.LayeredUpdates()
         
-        config.player = Player(config.player_image)
-        config.shield = Shield(config.player.rect.center)     
-        config.base = Base()
+        Config.player = Player(Config.player_image)
+        Config.shield = Shield(Config.player.rect.center)     
+        Config.base = Base()
         
-        config.current_score = ""
-        config.current_score_centerx = -100
-        config.current_score_top = -100
-        config.level_number = 2
-        config.total_score = 0
-        config.total_enemy = 5         # Количество противников на весь уровень
-        config.remaining_enemy_count = config.total_enemy # Оставшееся количество противников
-        config.current_enemy_count = 0 # Текущее количество противников на карте
-        config.total_enemy_count = 0 # Общее количество появившихся противников
-        config.new_enemies_number = 0 # Количество противников, которое нужно добавить после применения улучшения Gun
-        config.hits_interval = 0
-        config.base_shield_start_time = 0
-        config.base_shield = False
-        config.freeze_time = 0
-        config.frozen_time = False
+        Config.current_score = ""
+        Config.current_score_centerx = -100
+        Config.current_score_top = -100
+        Config.level_number = 2
+        Config.total_score = 0
+        Config.total_enemy = 5         # Количество противников на весь уровень
+        Config.remaining_enemy_count = Config.total_enemy # Оставшееся количество противников
+        Config.current_enemy_count = 0 # Текущее количество противников на карте
+        Config.total_enemy_count = 0 # Общее количество появившихся противников
+        Config.new_enemies_number = 0 # Количество противников, которое нужно добавить после применения улучшения Gun
+        Config.hits_interval = 0
+        Config.base_shield_start_time = 0
+        Config.base_shield = False
+        Config.freeze_time = 0
+        Config.frozen_time = False
         
-        config.game_over_string = ""
-        config.game_over_string_centerx = -100
-        config.game_over_string_top = -100
+        Config.game_over_string = ""
+        Config.game_over_string_centerx = -100
+        Config.game_over_string_top = -100
 
         # Создание стен
-        s = config.TILE_SIZE
-        with open(resource_path(f"levels/{config.level_number}.txt"), "rt") as f:
+        s = Config.TILE_SIZE
+        with open(resource_path(f"levels/{Config.level_number}.txt"), "rt") as f:
             lines = f.readlines()
         for i in range(13):
             for j in range(13):
-                if lines[i][j] in config.MAP:
-                    name = config.MAP[lines[i][j]]
+                if lines[i][j] in Config.MAP:
+                    name = Config.MAP[lines[i][j]]
                     Tile(j * s, i * s, name)
                     Tile(j * s + s / 2, i * s, name)
                     Tile(j * s, i * s + s / 2, name)
                     Tile(j * s + s / 2, i * s + s / 2, name)
 
         # Создание меток появления
-        config.spawn_coordinates_x = ["" for i in range(config.total_enemy)]
-        config.coordinates_lst = [0 * 50, 6 * 50, 12 * 50]
-        config.spawn_coordinates_x[0] = random.choice(config.coordinates_lst) # Создание списка координат появления
-        for i in range(1, config.total_enemy):              # Создание списка координат появления
-            lst = config.coordinates_lst.copy()
-            lst.remove(config.spawn_coordinates_x[i - 1])
-            config.spawn_coordinates_x[i] = random.choice(lst)
-        Spawn(config.spawn_coordinates_x[0]) # Создание первой метки появления
+        Config.spawn_coordinates_x = ["" for i in range(Config.total_enemy)]
+        Config.coordinates_lst = [0 * 50, 6 * 50, 12 * 50]
+        Config.spawn_coordinates_x[0] = random.choice(Config.coordinates_lst) # Создание списка координат появления
+        for i in range(1, Config.total_enemy):              # Создание списка координат появления
+            lst = Config.coordinates_lst.copy()
+            lst.remove(Config.spawn_coordinates_x[i - 1])
+            Config.spawn_coordinates_x[i] = random.choice(lst)
+        Spawn(Config.spawn_coordinates_x[0]) # Создание первой метки появления
         
     if game_over:
         show_game_over_screen()
@@ -251,80 +245,80 @@ while running:
         before_start = True
     
     if level_won:
-        if config.level_number == 30:
-            config.level_number = 1
+        if Config.level_number == 30:
+            Config.level_number = 1
         else:
-            config.level_number += 1
+            Config.level_number += 1
         level_won = False
 
-        config.start_time = pygame.time.get_ticks()
-        config.enemy_respawn_time = config.start_time
-        config.last_enemy_hit_time = config.start_time
-        config.last_player_hit_time = config.start_time
-        config.powerup_hit_time = config.start_time 
+        Config.start_time = pygame.time.get_ticks()
+        Config.enemy_respawn_time = Config.start_time
+        Config.last_enemy_hit_time = Config.start_time
+        Config.last_player_hit_time = Config.start_time
+        Config.powerup_hit_time = Config.start_time 
         try:
-            config.game_start_sound.play()
+            Config.game_start_sound.play()
         except NameError:
             pass
-        config.all_sprites = pygame.sprite.Group()
-        config.enemies = pygame.sprite.Group()
-        config.new_enemies = pygame.sprite.Group()
-        config.player_bullets = pygame.sprite.Group()
-        config.enemy_bullets = pygame.sprite.Group()
-        config.powerups = pygame.sprite.Group()
-        config.tiles = pygame.sprite.Group()
-        config.spawns = pygame.sprite.Group()
-        config.shields = pygame.sprite.Group()
-        config.layers = pygame.sprite.LayeredUpdates()
+        Config.all_sprites = pygame.sprite.Group()
+        Config.enemies = pygame.sprite.Group()
+        Config.new_enemies = pygame.sprite.Group()
+        Config.player_bullets = pygame.sprite.Group()
+        Config.enemy_bullets = pygame.sprite.Group()
+        Config.powerups = pygame.sprite.Group()
+        Config.tiles = pygame.sprite.Group()
+        Config.spawns = pygame.sprite.Group()
+        Config.shields = pygame.sprite.Group()
+        Config.layers = pygame.sprite.LayeredUpdates()
         
-        config.player = Player(config.player_image, config.player_level, config.player_lives)
-        config.player.level = config.player_level
-        config.player.first_image = config.player_image
-        config.shield = Shield(config.player.rect.center)
-        config.base = Base()
+        Config.player = Player(Config.player_image, Config.player_level, Config.player_lives)
+        Config.player.level = Config.player_level
+        Config.player.first_image = Config.player_image
+        Config.shield = Shield(Config.player.rect.center)
+        Config.base = Base()
         
-        config.current_score = ""
-        config.current_score_centerx = -100
-        config.current_score_top = -100
-        config.total_enemy = 5
-        config.remaining_enemy_count = config.total_enemy
-        config.current_enemy_count = 0
-        config.total_enemy_count = 0
-        config.new_enemies_number = 0
-        config.hits_interval = 0
-        config.base_shield_start_time = 0
-        config.base_shield = False
-        config.freeze_time = 0
-        config.frozen_time = False
-        config.game_over_string = ""
-        config.game_over_string_centerx = -100
-        config.game_over_string_top = -100
+        Config.current_score = ""
+        Config.current_score_centerx = -100
+        Config.current_score_top = -100
+        Config.total_enemy = 5
+        Config.remaining_enemy_count = Config.total_enemy
+        Config.current_enemy_count = 0
+        Config.total_enemy_count = 0
+        Config.new_enemies_number = 0
+        Config.hits_interval = 0
+        Config.base_shield_start_time = 0
+        Config.base_shield = False
+        Config.freeze_time = 0
+        Config.frozen_time = False
+        Config.game_over_string = ""
+        Config.game_over_string_centerx = -100
+        Config.game_over_string_top = -100
 
         # Создание стен
-        s = config.TILE_SIZE
-        with open(resource_path(f"levels/{config.level_number}.txt"), "rt") as f:
+        s = Config.TILE_SIZE
+        with open(resource_path(f"levels/{Config.level_number}.txt"), "rt") as f:
             lines = f.readlines()
         for i in range(13):
             for j in range(13):
-                if lines[i][j] in config.MAP:
-                    name = config.MAP[lines[i][j]]
+                if lines[i][j] in Config.MAP:
+                    name = Config.MAP[lines[i][j]]
                     Tile(j * s, i * s, name)
                     Tile(j * s + s / 2, i * s, name)
                     Tile(j * s, i * s + s / 2, name)
                     Tile(j * s + s / 2, i * s + s / 2, name)
 
         # Создание меток появления
-        config.spawn_coordinates_x = ["" for i in range(config.total_enemy)]
-        config.coordinates_lst = [0 * 50, 6 * 50, 12 * 50]
-        config.spawn_coordinates_x[0] = random.choice(config.coordinates_lst) # Создание списка координат появления
-        for i in range(1, config.total_enemy):              # Создание списка координат появления
-            lst = config.coordinates_lst.copy()
-            lst.remove(config.spawn_coordinates_x[i - 1])
-            config.spawn_coordinates_x[i] = random.choice(lst)
-        Spawn(config.spawn_coordinates_x[0]) # Создание первой метки появления
+        Config.spawn_coordinates_x = ["" for i in range(Config.total_enemy)]
+        Config.coordinates_lst = [0 * 50, 6 * 50, 12 * 50]
+        Config.spawn_coordinates_x[0] = random.choice(Config.coordinates_lst) # Создание списка координат появления
+        for i in range(1, Config.total_enemy):              # Создание списка координат появления
+            lst = Config.coordinates_lst.copy()
+            lst.remove(Config.spawn_coordinates_x[i - 1])
+            Config.spawn_coordinates_x[i] = random.choice(lst)
+        Spawn(Config.spawn_coordinates_x[0]) # Создание первой метки появления
 
     # Держим цикл на правильной скорости
-    config.clock.tick(config.FPS)
+    Config.clock.tick(Config.FPS)
 
     ##### Ввод процесса (события)
     for event in pygame.event.get():
@@ -336,86 +330,86 @@ while running:
                 running = False
     
     ##### Обновление
-    config.all_sprites.update()
-    config.now = pygame.time.get_ticks()
-    config.formatted_now_time = get_time() 
+    Config.all_sprites.update()
+    Config.now = pygame.time.get_ticks()
+    Config.formatted_now_time = get_time() 
     
     # Добавление первых противников и меток появления
     enemies_lst = [NormalEnemy] # Список подклассов противника
-    if config.total_enemy_count < 3 and config.now - config.enemy_respawn_time >= config.appearance_delay:
-        config.enemy_respawn_time = config.now
-        random.choice(enemies_lst)(config.spawn_coordinates_x[config.total_enemy_count]) # Создание противника
-        config.current_enemy_count += 1
-        config.total_enemy_count += 1
-        if config.total_enemy_count < 3:
-            Spawn(config.spawn_coordinates_x[config.total_enemy_count])
+    if Config.total_enemy_count < 3 and Config.now - Config.enemy_respawn_time >= Config.appearance_delay:
+        Config.enemy_respawn_time = Config.now
+        random.choice(enemies_lst)(Config.spawn_coordinates_x[Config.total_enemy_count]) # Создание противника
+        Config.current_enemy_count += 1
+        Config.total_enemy_count += 1
+        if Config.total_enemy_count < 3:
+            Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
 
     # Добавление остальных противников и меток появления
-    if config.now - config.enemy_respawn_time >= config.appearance_delay and config.remaining_enemy_count >= 3 and config.current_enemy_count < 3:
-        if config.current_enemy_count == 2 and config.new_enemies_number == 0:
-            config.enemy_respawn_time = config.now
-        if config.current_enemy_count == 1 and config.new_enemies_number == 0:
-            config.enemy_respawn_time += config.hits_interval
-        if config.new_enemies_number != 0: # После применения улучшения Gun
-            config.enemy_respawn_time = config.now
-        random.choice(enemies_lst)(config.spawn_coordinates_x[config.total_enemy_count])
-        config.current_enemy_count += 1
-        config.total_enemy_count += 1
-        while config.new_enemies_number != 0: # После применения улучшения Gun
-            Spawn(config.spawn_coordinates_x[config.total_enemy_count])
-            config.new_enemies_number -= 1
+    if Config.now - Config.enemy_respawn_time >= Config.appearance_delay and Config.remaining_enemy_count >= 3 and Config.current_enemy_count < 3:
+        if Config.current_enemy_count == 2 and Config.new_enemies_number == 0:
+            Config.enemy_respawn_time = Config.now
+        if Config.current_enemy_count == 1 and Config.new_enemies_number == 0:
+            Config.enemy_respawn_time += Config.hits_interval
+        if Config.new_enemies_number != 0: # После применения улучшения Gun
+            Config.enemy_respawn_time = Config.now
+        random.choice(enemies_lst)(Config.spawn_coordinates_x[Config.total_enemy_count])
+        Config.current_enemy_count += 1
+        Config.total_enemy_count += 1
+        while Config.new_enemies_number != 0: # После применения улучшения Gun
+            Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
+            Config.new_enemies_number -= 1
 
     # Добавление последних противников
-    if (config.now - config.enemy_respawn_time >= config.appearance_delay and config.remaining_enemy_count < 3 
-        and config.remaining_enemy_count != config.current_enemy_count):
-        config.enemy_respawn_time = config.now
-        random.choice(enemies_lst)(config.spawn_coordinates_x[config.total_enemy_count])
-        config.current_enemy_count += 1
-        config.total_enemy_count += 1
-        while config.new_enemies_number != 0: # После применения улучшения Gun
-            Spawn(config.spawn_coordinates_x[config.total_enemy_count])
-            config.new_enemies_number -= 1
+    if (Config.now - Config.enemy_respawn_time >= Config.appearance_delay and Config.remaining_enemy_count < 3 
+        and Config.remaining_enemy_count != Config.current_enemy_count):
+        Config.enemy_respawn_time = Config.now
+        random.choice(enemies_lst)(Config.spawn_coordinates_x[Config.total_enemy_count])
+        Config.current_enemy_count += 1
+        Config.total_enemy_count += 1
+        while Config.new_enemies_number != 0: # После применения улучшения Gun
+            Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
+            Config.new_enemies_number -= 1
     
     # Добавление обработки столкновений
     collisions.collide()
 
     # Если прошла ли 1 секунда после появления локальных очков
-    if config.now - config.last_enemy_hit_time > 1000 and config.now - config.powerup_hit_time > 1000:
-        config.current_score = ""
+    if Config.now - Config.last_enemy_hit_time > 1000 and Config.now - Config.powerup_hit_time > 1000:
+        Config.current_score = ""
 
     # Если игрок умер, игра окончена
-    if config.player.lives == 0 and config.now - config.last_player_hit_time > 2000 and not before_start:
+    if Config.player.lives == 0 and Config.now - Config.last_player_hit_time > 2000 and not before_start:
         try:
-            config.game_over_sound.play()
+            Config.game_over_sound.play()
         except NameError:
             pass
         game_over = True
 
     # Если противники закончились, уровень пройден
-    if (config.remaining_enemy_count == 0 and config.now - config.last_enemy_hit_time > 2000 and
-        config.now - config.powerup_hit_time > 2000):
-        config.player_image = config.player.first_image
-        config.player_level = config.player.level
-        config.player_lives = config.player.lives
+    if (Config.remaining_enemy_count == 0 and Config.now - Config.last_enemy_hit_time > 2000 and
+        Config.now - Config.powerup_hit_time > 2000):
+        Config.player_image = Config.player.first_image
+        Config.player_level = Config.player.level
+        Config.player_lives = Config.player.lives
         level_won = True
 
     # Если прошло время заморозки противников
-    if config.frozen_time:
-        if config.now - config.freeze_time > 5000:
-            for enemy in config.enemies:
+    if Config.frozen_time:
+        if Config.now - Config.freeze_time > 5000:
+            for enemy in Config.enemies:
                 enemy.frozen = False
-            config.frozen_time = False
+            Config.frozen_time = False
 
     # Если база уничтожена, показать строку "GAME OVER"
-    if config.base.destroyed and not before_start:
-        if config.game_over_string_top > config.HEIGHT / 2:
-            config.game_over_string_top -= 3
+    if Config.base.destroyed and not before_start:
+        if Config.game_over_string_top > Config.HEIGHT / 2:
+            Config.game_over_string_top -= 3
 
     # Если база уничтожена, игра окончена
-    if config.base.destroyed and config.now - config.base.destroyed_time > 3000 and not before_start:
-        config.player.kill()
-        config.player_level = 0
-        config.player_image = config.player_images[0]
+    if Config.base.destroyed and Config.now - Config.base.destroyed_time > 3000 and not before_start:
+        Config.player.kill()
+        Config.player_level = 0
+        Config.player_image = Config.player_images[0]
         game_over = True
     
     ##### Визуализация (сборка)
