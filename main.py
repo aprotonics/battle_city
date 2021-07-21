@@ -161,7 +161,6 @@ print(Config.path)
 print()
 
 
-
 # Цикл игры
 before_start = True
 level_won = False
@@ -178,11 +177,13 @@ while running:
         Config.powerup_hit_time = Config.start_time
         try:
             Config.game_start_sound.play()
-        except NameError:
+        except:
             pass
         Config.all_sprites = pygame.sprite.Group()
         Config.enemies = pygame.sprite.Group()
         Config.new_enemies = pygame.sprite.Group()
+        Config.enemies_mode1 = pygame.sprite.Group()
+        Config.enemies_mode2 = pygame.sprite.Group()
         Config.bullets = pygame.sprite.Group()
         Config.player_bullets = pygame.sprite.Group()
         Config.enemy_bullets = pygame.sprite.Group()
@@ -199,7 +200,7 @@ while running:
         Config.current_score = ""
         Config.current_score_centerx = -100
         Config.current_score_top = -100
-        Config.level_number = 2
+        Config.level_number = 1
         Config.total_score = 0
         Config.total_enemy = 5         # Количество противников на весь уровень
         Config.remaining_enemy_count = Config.total_enemy # Оставшееся количество противников
@@ -258,7 +259,7 @@ while running:
         Config.powerup_hit_time = Config.start_time 
         try:
             Config.game_start_sound.play()
-        except NameError:
+        except:
             pass
         Config.all_sprites = pygame.sprite.Group()
         Config.enemies = pygame.sprite.Group()
@@ -381,7 +382,7 @@ while running:
     if Config.player.lives == 0 and Config.now - Config.last_player_hit_time > 2000 and not before_start:
         try:
             Config.game_over_sound.play()
-        except NameError:
+        except:
             pass
         game_over = True
 

@@ -10,6 +10,7 @@ def collide():
     for hit in hits:
         hit.remove(Config.new_enemies)
         hit.add(Config.enemies)
+        hit.add(Config.enemies_mode1)
 
     # Проверка столкновений пули противника и пули игрока
     hits = pygame.sprite.groupcollide(Config.player_bullets, Config.enemy_bullets, True, True)
@@ -69,7 +70,7 @@ def collide():
             if Config.player.life > 0:
                 try:
                     Config.hit_sound.play()
-                except NameError:
+                except:
                     pass
             else:
                 Explosion(hit.rect.center) 
@@ -80,7 +81,7 @@ def collide():
                 Config.player.downgrade(Config.player.rect.center)
                 try:
                     Config.explosion_sound.play()
-                except NameError:
+                except:
                     pass
 
     # Проверка столкновений пули игрока и противника
@@ -111,7 +112,7 @@ def collide():
         if hit.life > 0:
             try:
                 Config.hit_sound.play()
-            except NameError:
+            except:
                 pass
         else:                       # Если противник убит
             Config.current_score = 100
@@ -131,7 +132,7 @@ def collide():
             hit.kill()  
             try:
                 Config.explosion_sound.play()
-            except NameError:
+            except:
                 pass
             
             if random.random() > 0.8:
@@ -188,7 +189,7 @@ def collide():
         Config.total_score += 100
         try:
             Config.powerup_sound.play()
-        except NameError:
+        except:
             pass
         if hit.type == "gun":
             if Config.enemies:
@@ -230,17 +231,30 @@ def collide():
 
     # Проверка столкновений противников друг с другом
     for enemy in Config.enemies:
-        enemy.remove(Config.enemies)        
-        hits = pygame.sprite.spritecollide(enemy, Config.enemies, False)
-        for hit in hits:
-            if hit.frozen != True:
-                hit.stop()
-                hit.last_rotate = Config.now
-                hit.reverse()
-            if enemy.frozen != True:
-                enemy.stop() 
-                enemy.last_rotate = Config.now
-                enemy.reverse()            
+        enemy.remove(Config.enemies)
+        if enemy.mode == 1:
+            hits = pygame.sprite.spritecollide(enemy, Config.enemies, False)
+            for hit in hits:
+                if hit.frozen != True:
+                    hit.stop()
+                    hit.last_rotate = Config.now
+                    hit.reverse()
+                if enemy.frozen != True:
+                    enemy.stop() 
+                    enemy.last_rotate = Config.now
+                    enemy.reverse()
+        
+        # if enemy.mode == 2:
+        #     hits = pygame.sprite.spritecollide(enemy, Config.enemies, False)
+        #     for hit in hits:
+        #         if hit.frozen != True:
+        #             hit.stop()
+        #             hit.last_rotate = Config.now
+        #             hit.reverse()
+        #         if enemy.frozen != True:
+        #             enemy.stop() 
+        #             enemy.last_rotate = Config.now
+        #             enemy.reverse()
             
         enemy.add(Config.enemies)
 
@@ -267,7 +281,7 @@ def collide():
             Config.base.destroyed_time = Config.now
             try:
                 Config.game_over_sound.play()
-            except NameError:
+            except:
                 pass
             Config.game_over_string = "GAME OVER"
             Config.game_over_string_centerx = Config.base.rect.centerx

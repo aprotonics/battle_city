@@ -133,7 +133,7 @@ class Config():
         hit_sound = pygame.mixer.Sound(os.path.join(snd_dir, "hit.wav"))
         explosion_sound = pygame.mixer.Sound(os.path.join(snd_dir, "explosion.ogg"))
         game_over_sound = pygame.mixer.Sound(os.path.join(snd_dir, "gameover.ogg"))
-    except RuntimeError:
+    except:
         print("Sound_Error")
 
 
@@ -153,6 +153,8 @@ class Config():
     all_sprites = None
     enemies = None
     new_enemies = None
+    enemies_mode1 = None
+    enemies_mode2 = None
     bullets = None
     player_bullets = None
     enemy_bullets = None

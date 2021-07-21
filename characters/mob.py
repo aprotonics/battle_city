@@ -60,12 +60,15 @@ def a_star_search(graph, start, goal):
     return came_from, cost_so_far, iterations
 
 
+n = 25 # Шаг сетки графа
+radius = 75
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x):
         pygame.sprite.Sprite.__init__(self)
-        self.spawn_time = pygame.time.get_ticks()
         self.mode = 1
-        self.mode1_duration = 5000
+        self.mode1_start_time = pygame.time.get_ticks()
+        self.mode1_duration = 2000
         self.rand_image = random.choice(Config.enemy_images)[0]
         self.image = self.rand_image
         self.image.set_colorkey(Config.BLACK)
@@ -94,8 +97,8 @@ class Enemy(pygame.sprite.Sprite):
 
     def __init_mode2__(self):
         self.mode = 2
-        self.rect.x = round(self.rect.x / 50) * 50
-        self.rect.y = round(self.rect.y / 50) * 50
+        self.rect.x = round(self.rect.x / n) * n
+        self.rect.y = round(self.rect.y / n) * n
         self.graph_coordinate_x = self.rect.x
         self.graph_coordinate_y =  self.rect.y
 
@@ -110,6 +113,12 @@ class Enemy(pygame.sprite.Sprite):
         self.next_position = self.path_to_player[self.step + 1]
         self.path_update_delay = 3000
         self.path_update_time = pygame.time.get_ticks()
+
+        self.moving_blocked = False
+        self.occupied_points = set()
+
+        Config.enemies_mode1.remove(self)
+        Config.enemies_mode2.add(self)
        
     def rotate(self):
         self.direction = random.choice(["up", "right", "down", "left"])
@@ -183,25 +192,50 @@ class Enemy(pygame.sprite.Sprite):
         self.speedy = 0
      
         # Определение направления движения
-        if self.next_position[1] - self.current_position[1] == 25:
+        if self.next_position[1] - self.current_position[1] == n:
             self.direction = "down"
             self.rotate_mode2(self.direction)
             self.speedy = self.speed
-        elif self.next_position[1] - self.current_position[1] == -25:
+        elif self.next_position[1] - self.current_position[1] == -n:
             self.direction = "up"
             self.rotate_mode2(self.direction)
             self.speedy = -self.speed
-        elif self.next_position[0] - self.current_position[0] == 25:
+        elif self.next_position[0] - self.current_position[0] == n:
             self.direction = "right"
             self.rotate_mode2(self.direction)
             self.speedx = self.speed
-        elif self.next_position[0] - self.current_position[0] == -25:
+        elif self.next_position[0] - self.current_position[0] == -n:
             self.direction = "left"
             self.rotate_mode2(self.direction)
             self.speedx = -self.speed 
 
         self.rect.x += self.speedx
         self.rect.y += self.speedy
+
+        # Поиск ближайшей вершины графа
+        x1, y1 = self.rect.x // n * n, self.rect.y // n * n
+        x2, y2 = (self.rect.x // n + 1) * n, self.rect.y // n * n
+        x3, y3 = self.rect.x // n * n, (self.rect.y // n + 1) * n
+        x4, y4 = (self.rect.x // n + 1) * n, (self.rect.y // n + 1) * n
+        dist1 = (self.rect.x - x1) ** 2 + (self.rect.y - y1) ** 2
+        dist2 = (self.rect.x - x2) ** 2 + (self.rect.y - y2) ** 2
+        dist3 = (self.rect.x - x3) ** 2 + (self.rect.y - y3) ** 2
+        dist4 = (self.rect.x - x4) ** 2 + (self.rect.y - y4) ** 2
+        MAP = {
+            dist1: (x1, y1),
+            dist2: (x2, y2),
+            dist3: (x3, y3),
+            dist4: (x4, y4),
+        }
+        minimum = min(dist1, dist2, dist3, dist4)
+        nearest_node = MAP[minimum]
+
+        # Если ближайшая вершина изменилась
+        if nearest_node[0] != self.graph_coordinate_x or nearest_node[1] != self.graph_coordinate_y:
+            self.set_free_graph_coordinates()
+            self.graph_coordinate_x = nearest_node[0]
+            self.graph_coordinate_y = nearest_node[1]
+            self.set_occupied_graph_coordinates()
 
         # Проверка на преодоление следующей точки пути
         if self.direction == "down":
@@ -254,7 +288,7 @@ class Enemy(pygame.sprite.Sprite):
         print("path", self.path_to_player)  
         self.step = 0
     
-    def change_positions(self):
+    def change_next_position(self):
         if self.current_position != self.next_position:
             self.step += 1
             self.current_position = self.next_position 
@@ -262,13 +296,45 @@ class Enemy(pygame.sprite.Sprite):
             if self.step < len(self.path_to_player) - 1:
                 self.next_position = self.path_to_player[self.step + 1]
     
-    def change_mode(self, from_mode, to_mode):
-        self.__init_mode2__()
+    def change_mode(self, from_mode, to_mode): # Дописать
+        if to_mode == 2:
+            self.__init_mode2__()
+        if to_mode == 1:
+            self.mode = 1
+            self.mode1_start_time = pygame.time.get_ticks()
+            self.mode1_duration = 2000
+            Config.enemies_mode2.remove(self)
+            Config.enemies_mode1.add(self)
         # self.mode = to_mode
 
+    def set_free_graph_coordinates(self):
+        x, y = (self.graph_coordinate_x, self.graph_coordinate_y)
+        if (x, y) in self.occupied_points:
+            self.occupied_points.remove((x, y))
+
+        points_into_radius = [(x + i, y + j) for i in range(-radius, radius+1, 25)
+                                for j in range(-radius, radius+1, 25)]
+        
+        for point in points_into_radius:
+            if point in self.occupied_points:
+                self.occupied_points.remove(point)
+
+    def set_occupied_graph_coordinates(self):
+        # Проверка на наличие занимаемой точки пути в путях других противников
+        x, y = (self.graph_coordinate_x, self.graph_coordinate_y)
+        self.occupied_points.add((x, y))
+
+        points_into_radius = [(x + i, y + j) for i in range(-radius, radius+1, 25)
+                                for j in range(-radius, radius+1, 25)]
+        
+        for point in points_into_radius:
+            self.occupied_points.add(point)
+        
     def update(self):
         now = pygame.time.get_ticks()
-        if self.mode == 1 and now - self.spawn_time > self.mode1_duration:
+        
+        # Смена режима после появления
+        if self.mode == 1 and now - self.mode1_start_time > self.mode1_duration:
             self.change_mode(1, 2)
 
         if not self.frozen:
@@ -293,12 +359,10 @@ class Enemy(pygame.sprite.Sprite):
                     self.start = (self.current_position[0], self.current_position[1])
                     self.goal = (Config.player.graph_coordinate_x, Config.player.graph_coordinate_y)
                     self.update_path(self.start, self.goal)
-                    # print("path_to_player", self.path_to_player)
-                    # print("coordinates", (self.rect.x, self.rect.y))
                 
                 # Если точка пути достигнута, перейти к следующей
                 if self.rect.x == self.next_position[0] and self.rect.y == self.next_position[1]:
-                    self.change_positions()
+                    self.change_next_position()
 
                 # Если путь пройден, запросить новый путь
                 if self.current_position == self.next_position:
@@ -310,7 +374,18 @@ class Enemy(pygame.sprite.Sprite):
                     if self.step < len(self.path_to_player) - 1:
                         self.next_position = self.path_to_player[self.step + 1]
                 
-                self.move_mode2()
+                # Если следующая точка пути не занята, продолжить движение
+                self.remove(Config.enemies_mode2)
+                for enemy in Config.enemies_mode2:
+                    if self.path_to_player[self.step + 1] in enemy.occupied_points:
+                        self.moving_blocked = True
+                        break
+                else:
+                    self.moving_blocked = False
+                self.add(Config.enemies_mode2)
+
+                if not self.moving_blocked:
+                    self.move_mode2()
 
             self.shoot()
 

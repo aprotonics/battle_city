@@ -3,6 +3,7 @@ from config import Config
 from classes import PlayerBullet, Shield
 
 
+n = 50 # Шаг сетки графа
 class Player(pygame.sprite.Sprite):    
     def __init__(self, image, level=0, lives=3):
         pygame.sprite.Sprite.__init__(self)
@@ -17,8 +18,6 @@ class Player(pygame.sprite.Sprite):
 
         self.speedx = 0
         self.speedy = 0
-        self.sum_x = 0 # Пройденное растояние между точками сетки
-        self.sum_y = 0 # Пройденное растояние между точками сетки
 
         self.shoot_delay = 500
         self.last_shot = pygame.time.get_ticks()
@@ -86,31 +85,30 @@ class Player(pygame.sprite.Sprite):
             self.speedx = -Config.player_speed
 
         self.rect.x += self.speedx
-        self.sum_x += self.speedx
         self.rect.y += self.speedy
-        self.sum_y += self.speedy 
 
         # Поиск ближайшей вершины графа
-        if self.sum_y <= -50: # движение up
-            self.sum_y = -(abs(self.sum_y) % 50)
-            self.graph_coordinate_y = self.rect.y - self.sum_y
-            self.sum_x = self.rect.x % 50
-            self.graph_coordinate_x = self.rect.x - self.sum_x
-        if self.sum_x >= 50: # движение right
-            self.sum_x = self.sum_x % 50
-            self.graph_coordinate_x = self.rect.x - self.sum_x
-            self.sum_y = self.rect.y % 50
-            self.graph_coordinate_y = self.rect.y - self.sum_y
-        if self.sum_y >= 50: # движение down
-            self.sum_y = self.sum_y % 50
-            self.graph_coordinate_y = self.rect.y - self.sum_y
-            self.sum_x = self.rect.x % 50
-            self.graph_coordinate_x = self.rect.x - self.sum_x
-        if self.sum_x <= -50: # движение left
-            self.sum_x = -(abs(self.sum_x) % 50)
-            self.graph_coordinate_x = self.rect.x - self.sum_x
-            self.sum_y = self.rect.y % 50
-            self.graph_coordinate_y = self.rect.y - self.sum_y
+        x1, y1 = self.rect.x // n * n, self.rect.y // n * n
+        x2, y2 = (self.rect.x // n + 1) * n, self.rect.y // n * n
+        x3, y3 = self.rect.x // n * n, (self.rect.y // n + 1) * n
+        x4, y4 = (self.rect.x // n + 1) * n, (self.rect.y // n + 1) * n
+        dist1 = (self.rect.x - x1) ** 2 + (self.rect.y - y1) ** 2
+        dist2 = (self.rect.x - x2) ** 2 + (self.rect.y - y2) ** 2
+        dist3 = (self.rect.x - x3) ** 2 + (self.rect.y - y3) ** 2
+        dist4 = (self.rect.x - x4) ** 2 + (self.rect.y - y4) ** 2
+        MAP = {
+            dist1: (x1, y1),
+            dist2: (x2, y2),
+            dist3: (x3, y3),
+            dist4: (x4, y4),
+        }
+        minimum = min(dist1, dist2, dist3, dist4)
+        nearest_node = MAP[minimum]
+        
+        # Если ближайшая вершина изменилась
+        if nearest_node[0] != self.graph_coordinate_x or nearest_node[1] != self.graph_coordinate_y:
+            self.graph_coordinate_x = nearest_node[0]
+            self.graph_coordinate_y = nearest_node[1]
 
         if (keystate[pygame.K_SPACE] == True and
         (Config.current_enemy_count > 1 or Config.remaining_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
@@ -119,16 +117,12 @@ class Player(pygame.sprite.Sprite):
     def stop(self):
         if self.direction == "up":
             self.rect.y -= self.speedy
-            self.sum_y -= self.speedy
         if self.direction == "right":
             self.rect.x -= self.speedx
-            self.sum_x -= self.speedx
         if self.direction == "down":
             self.rect.y -= self.speedy
-            self.sum_y -= self.speedy
         if self.direction == "left":
             self.rect.x -= self.speedx
-            self.sum_x -= self.speedx
 
     def shoot(self):
         now = pygame.time.get_ticks()
@@ -150,13 +144,28 @@ class Player(pygame.sprite.Sprite):
             Config.player_bullets.add(player_bullet)
             try:
                 Config.shoot_sound.play()
-            except NameError:
+            except:
                 pass
 
     def hide(self):
         self.hidden = True
         self.hide_timer = pygame.time.get_ticks()
         self.rect.center = (Config.WIDTH / 2 - 100, Config.HEIGHT + 200)
+    
+    def show(self):
+        self.hidden = False
+        self.image = Config.player_images[0]
+        self.image.set_colorkey(Config.BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.x,  self.rect.y = Config.goal
+        self.graph_coordinate_x = self.rect.x
+        self.graph_coordinate_y = self.rect.y
+        self.direction = "up"
+        self.life = 100
+        Config.shield = Shield(self.rect.center)
+        
+        for enemy in Config.enemies:
+            enemy.mode1_start_time = pygame.time.get_ticks()
 
     def upgrade(self, center, direction):
         self.level += 1
@@ -222,28 +231,14 @@ class Player(pygame.sprite.Sprite):
                 pass
 
     def update(self):
+        now = pygame.time.get_ticks()
+        
         # Показать, если скрыто
-        if self.hidden and pygame.time.get_ticks() - self.hide_timer > 2000:
-            self.hidden = False
-            self.image = Config.player_images[0]
-            self.image.set_colorkey(Config.BLACK)
-            self.rect = self.image.get_rect()
-            self.rect.x,  self.rect.y = Config.goal
-            self.graph_coordinate_x = self.rect.x
-            self.graph_coordinate_y = self.rect.y
-            self.direction = "up"
-            self.life = 100
-            shield = Shield(self.rect.center)
-            
-            for enemy in Config.enemies:
-                enemy.mode = 2
+        if self.hidden and now - self.hide_timer > 2000:
+            self.show()    
 
         if not self.hidden:
             self.move()
-            # Проверка таймера на улучшение стрельбы
-            if hasattr(self, "gun_start_time"):
-                if pygame.time.get_ticks() - self.gun_start_time > 10000:
-                    self.shoot_delay = 500
             
             self.player_in_screen()
 
