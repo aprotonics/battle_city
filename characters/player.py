@@ -107,6 +107,7 @@ class Player(pygame.sprite.Sprite):
         
         # Если ближайшая вершина изменилась
         if nearest_node[0] != self.graph_coordinate_x or nearest_node[1] != self.graph_coordinate_y:
+            print("player_node", nearest_node)
             self.graph_coordinate_x = nearest_node[0]
             self.graph_coordinate_y = nearest_node[1]
 

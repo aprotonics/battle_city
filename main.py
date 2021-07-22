@@ -184,6 +184,7 @@ while running:
         Config.new_enemies = pygame.sprite.Group()
         Config.enemies_mode1 = pygame.sprite.Group()
         Config.enemies_mode2 = pygame.sprite.Group()
+        Config.enemies_mode3 = pygame.sprite.Group()
         Config.bullets = pygame.sprite.Group()
         Config.player_bullets = pygame.sprite.Group()
         Config.enemy_bullets = pygame.sprite.Group()
@@ -264,6 +265,9 @@ while running:
         Config.all_sprites = pygame.sprite.Group()
         Config.enemies = pygame.sprite.Group()
         Config.new_enemies = pygame.sprite.Group()
+        Config.enemies_mode1 = pygame.sprite.Group()
+        Config.enemies_mode2 = pygame.sprite.Group()
+        Config.enemies_mode3 = pygame.sprite.Group()
         Config.player_bullets = pygame.sprite.Group()
         Config.enemy_bullets = pygame.sprite.Group()
         Config.powerups = pygame.sprite.Group()
@@ -400,11 +404,6 @@ while running:
             for enemy in Config.enemies:
                 enemy.frozen = False
             Config.frozen_time = False
-        
-    # Если движение противника парализовано, сменить режим на №1
-    for enemy in Config.enemies_mode2:
-        if enemy.moving_blocked == True and pygame.time.get_ticks() - enemy.moving_blocked_time > enemy.timeout:
-            enemy.change_mode(2, 1)
 
     # Если база уничтожена, показать строку "GAME OVER"
     if Config.base.destroyed and not before_start:
@@ -417,6 +416,11 @@ while running:
         Config.player_level = 0
         Config.player_image = Config.player_images[0]
         game_over = True
+
+    # Если движение противника парализовано, сменить режим на №1
+    for enemy in Config.enemies_mode2:
+        if enemy.moving_blocked == True and pygame.time.get_ticks() - enemy.moving_blocked_time > enemy.timeout:
+            enemy.change_mode(2, 1)
     
     ##### Визуализация (сборка)
     render.render()

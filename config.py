@@ -155,6 +155,7 @@ class Config():
     new_enemies = None
     enemies_mode1 = None
     enemies_mode2 = None
+    enemies_mode3 = None
     bullets = None
     player_bullets = None
     enemy_bullets = None

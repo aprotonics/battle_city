@@ -158,26 +158,27 @@ def collide():
     # Проверка столкновений противника с элементом стены
     hits = pygame.sprite.groupcollide(Config.enemies, Config.tiles, False, False)
     for hit in hits:
-        for tile in hits[hit]:
-            if tile.type == "STEEL":
-                hit.stop()
-                hit.last_rotate = Config.now
-                hit.rotate()
-                break
-            if tile.type == "BRICK":
-                hit.stop()
-                hit.last_rotate = Config.now
-                hit.rotate()
-                break
-            if tile.type == "GRASS":
-                pass
-            if tile.type == "WATER":
-                hit.stop()
-                hit.last_rotate = Config.now
-                hit.rotate()
-                break
-            if tile.type == "ICE":
-                pass
+        if hit.mode == 1: # Если режим противника №1
+            for tile in hits[hit]:
+                if tile.type == "STEEL":
+                    hit.stop()
+                    hit.last_rotate = Config.now
+                    hit.rotate()
+                    break
+                if tile.type == "BRICK":
+                    hit.stop()
+                    hit.last_rotate = Config.now
+                    hit.rotate()
+                    break
+                if tile.type == "GRASS":
+                    pass
+                if tile.type == "WATER":
+                    hit.stop()
+                    hit.last_rotate = Config.now
+                    hit.rotate()
+                    break
+                if tile.type == "ICE":
+                    pass
 
     # Проверка столкновений игрока и улучшений
     hits = pygame.sprite.spritecollide(Config.player, Config.powerups, True)
@@ -224,10 +225,14 @@ def collide():
     # Проверка столкновений противника и игрока
     hits = pygame.sprite.spritecollide(Config.player, Config.enemies, False)
     for hit in hits:
-        Config.player.stop()
-        hit.stop()
-        hit.last_rotate = Config.now
-        hit.reverse()
+        if hit.mode == 1: # Если режим противника №1
+            Config.player.stop()
+            hit.stop()
+            hit.last_rotate = Config.now
+            hit.reverse()
+        if hit.mode == 2: # Если режим противника №2
+            hit.last_shot = 0
+            hit.shoot()
 
     # Проверка столкновений противников друг с другом
     for enemy in Config.enemies:
@@ -243,19 +248,7 @@ def collide():
                     enemy.stop() 
                     enemy.last_rotate = Config.now
                     enemy.reverse()
-        
-        # if enemy.mode == 2:
-        #     hits = pygame.sprite.spritecollide(enemy, Config.enemies, False)
-        #     for hit in hits:
-        #         if hit.frozen != True:
-        #             hit.stop()
-        #             hit.last_rotate = Config.now
-        #             hit.reverse()
-        #         if enemy.frozen != True:
-        #             enemy.stop() 
-        #             enemy.last_rotate = Config.now
-        #             enemy.reverse()
-            
+    
         enemy.add(Config.enemies)
 
     # Проверка столкновений игрока и базы
@@ -269,16 +262,16 @@ def collide():
         hit.last_rotate = Config.now
         hit.rotate()
 
-    # Проверка столкновений пули игрока и базы
+    # Проверка столкновений пулей игрока и противников с базой
     hits1 = pygame.sprite.spritecollide(Config.base, Config.player_bullets, True)
-
-    # Проверка столкновений пули противников и базы
     hits2 = pygame.sprite.spritecollide(Config.base, Config.enemy_bullets, True)
     if hits1 or hits2:
         if not Config.base.destroyed:
             Explosion(Config.base.rect.center)
             Config.base.destroyed = True
             Config.base.destroyed_time = Config.now
+            for enemy in Config.enemies_mode3:
+                enemy.change_mode(3, 1)
             try:
                 Config.game_over_sound.play()
             except:
