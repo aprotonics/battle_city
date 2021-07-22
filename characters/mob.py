@@ -61,14 +61,14 @@ def a_star_search(graph, start, goal):
 
 
 n = 25 # Шаг сетки графа
-radius = 75
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x):
+    def __init__(self, enemy_id, x):
         pygame.sprite.Sprite.__init__(self)
+        self.id = enemy_id
         self.mode = 1
         self.mode1_start_time = pygame.time.get_ticks()
-        self.mode1_duration = 2000
+        self.mode1_duration = 1500
         self.rand_image = random.choice(Config.enemy_images)[0]
         self.image = self.rand_image
         self.image.set_colorkey(Config.BLACK)
@@ -83,6 +83,7 @@ class Enemy(pygame.sprite.Sprite):
         self.speed = Config.enemy_speed
         self.speedx = 0
         self.speedy = self.speed
+        self.moving_radius = 50
 
         self.shoot_delay = 1000
         self.last_shot = pygame.time.get_ticks()
@@ -109,12 +110,14 @@ class Enemy(pygame.sprite.Sprite):
         print(self.goal)
         self.path_to_player = create_path(self.start, self.goal)
         self.current_position = self.path_to_player[self.step]
-        print(f"{self.step}. {self.current_position}")
+        print(f"{self.id}.{self.step}. {self.current_position}")
         self.next_position = self.path_to_player[self.step + 1]
         self.path_update_delay = 3000
         self.path_update_time = pygame.time.get_ticks()
 
         self.moving_blocked = False
+        self.moving_blocked_time = None
+        self.timeout = 5000
         self.occupied_points = set()
 
         Config.enemies_mode1.remove(self)
@@ -237,17 +240,17 @@ class Enemy(pygame.sprite.Sprite):
             self.graph_coordinate_y = nearest_node[1]
             self.set_occupied_graph_coordinates()
 
-        # Проверка на преодоление следующей точки пути
+        # Проверка на преодоление следующей точки пути !Проверить на необходимость!!!
         if self.direction == "down":
             if self.rect.y > self.next_position[1]:
                 self.rect.y = self.next_position[1]
-        if self.direction == "up":
+        elif self.direction == "up":
             if self.rect.y < self.next_position[1]:
                 self.rect.y = self.next_position[1]
-        if self.direction == "right":
+        elif self.direction == "right":
             if self.rect.x > self.next_position[0]:
                 self.rect.x = self.next_position[0]
-        if self.direction == "left":
+        elif self.direction == "left":
             if self.rect.x < self.next_position[0]:
                 self.rect.x = self.next_position[0]
 
@@ -287,12 +290,14 @@ class Enemy(pygame.sprite.Sprite):
         self.path_to_player = create_path(start, goal) 
         print("path", self.path_to_player)  
         self.step = 0
+        self.current_position = self.path_to_player[self.step]
+        self.next_position = self.path_to_player[self.step + 1]
     
     def change_next_position(self):
         if self.current_position != self.next_position:
             self.step += 1
             self.current_position = self.next_position 
-            print(f"{self.step}. {self.current_position}")       
+            print(f"{self.id}.{self.step}. {self.current_position}")       
             if self.step < len(self.path_to_player) - 1:
                 self.next_position = self.path_to_player[self.step + 1]
     
@@ -312,6 +317,7 @@ class Enemy(pygame.sprite.Sprite):
         if (x, y) in self.occupied_points:
             self.occupied_points.remove((x, y))
 
+        radius = self.moving_radius
         points_into_radius = [(x + i, y + j) for i in range(-radius, radius+1, 25)
                                 for j in range(-radius, radius+1, 25)]
         
@@ -324,6 +330,7 @@ class Enemy(pygame.sprite.Sprite):
         x, y = (self.graph_coordinate_x, self.graph_coordinate_y)
         self.occupied_points.add((x, y))
 
+        radius = self.moving_radius
         points_into_radius = [(x + i, y + j) for i in range(-radius, radius+1, 25)
                                 for j in range(-radius, radius+1, 25)]
         
@@ -353,16 +360,16 @@ class Enemy(pygame.sprite.Sprite):
                     self.rotate()
 
             elif self.mode == 2: # Режим №2
+                # Если точка пути достигнута, перейти к следующей
+                if self.rect.x == self.next_position[0] and self.rect.y == self.next_position[1]:
+                    self.change_next_position()
+                
                 # Если прошла задержка, обновить путь
                 if now - self.path_update_time > self.path_update_delay:
                     self.path_update_time = now
                     self.start = (self.current_position[0], self.current_position[1])
                     self.goal = (Config.player.graph_coordinate_x, Config.player.graph_coordinate_y)
                     self.update_path(self.start, self.goal)
-                
-                # Если точка пути достигнута, перейти к следующей
-                if self.rect.x == self.next_position[0] and self.rect.y == self.next_position[1]:
-                    self.change_next_position()
 
                 # Если путь пройден, запросить новый путь
                 if self.current_position == self.next_position:
@@ -379,6 +386,7 @@ class Enemy(pygame.sprite.Sprite):
                 for enemy in Config.enemies_mode2:
                     if self.path_to_player[self.step + 1] in enemy.occupied_points:
                         self.moving_blocked = True
+                        self.moving_blocked_time = now
                         break
                 else:
                     self.moving_blocked = False
@@ -391,8 +399,8 @@ class Enemy(pygame.sprite.Sprite):
 
 
 class NormalEnemy(Enemy):
-    def __init__(self, x):
-        super().__init__(x)
+    def __init__(self, enemy_id, x):
+        super().__init__(enemy_id, x)
         self.rand_image = random.choice(Config.enemy_images)[0]
         self.image = self.rand_image
         self.image.set_colorkey(Config.BLACK)
@@ -408,8 +416,8 @@ class NormalEnemy(Enemy):
         
 
 class FastEnemy(Enemy):
-    def __init__(self, x):
-        super().__init__(x)
+    def __init__(self, enemy_id, x):
+        super().__init__(enemy_id, x)
         self.rand_image = random.choice(Config.enemy_images)[1]
         self.image = self.rand_image
         self.image.set_colorkey(Config.BLACK)
@@ -425,8 +433,8 @@ class FastEnemy(Enemy):
 
    
 class EnhancedEnemy(Enemy):
-    def __init__(self, x):
-        super().__init__(x)
+    def __init__(self, enemy_id, x):
+        super().__init__(enemy_id, x)
         self.rand_image = random.choice(Config.enemy_images)[2]
         self.image = self.rand_image
         self.image.set_colorkey(Config.BLACK)
@@ -442,8 +450,8 @@ class EnhancedEnemy(Enemy):
     
 
 class HeavyEnemy(Enemy):
-    def __init__(self, x):
-        super().__init__(x)
+    def __init__(self, enemy_id, x):
+        super().__init__(enemy_id, x)
         self.rand_image = random.choice(Config.enemy_images)[3]
         self.image = self.rand_image
         self.image.set_colorkey(Config.BLACK)

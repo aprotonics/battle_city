@@ -339,7 +339,7 @@ while running:
     enemies_lst = [NormalEnemy] # Список подклассов противника
     if Config.total_enemy_count < 3 and Config.now - Config.enemy_respawn_time >= Config.appearance_delay:
         Config.enemy_respawn_time = Config.now
-        random.choice(enemies_lst)(Config.spawn_coordinates_x[Config.total_enemy_count]) # Создание противника
+        random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count]) # Создание противника
         Config.current_enemy_count += 1
         Config.total_enemy_count += 1
         if Config.total_enemy_count < 3:
@@ -353,7 +353,7 @@ while running:
             Config.enemy_respawn_time += Config.hits_interval
         if Config.new_enemies_number != 0: # После применения улучшения Gun
             Config.enemy_respawn_time = Config.now
-        random.choice(enemies_lst)(Config.spawn_coordinates_x[Config.total_enemy_count])
+        random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count])
         Config.current_enemy_count += 1
         Config.total_enemy_count += 1
         while Config.new_enemies_number != 0: # После применения улучшения Gun
@@ -364,7 +364,7 @@ while running:
     if (Config.now - Config.enemy_respawn_time >= Config.appearance_delay and Config.remaining_enemy_count < 3 
         and Config.remaining_enemy_count != Config.current_enemy_count):
         Config.enemy_respawn_time = Config.now
-        random.choice(enemies_lst)(Config.spawn_coordinates_x[Config.total_enemy_count])
+        random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count])
         Config.current_enemy_count += 1
         Config.total_enemy_count += 1
         while Config.new_enemies_number != 0: # После применения улучшения Gun
@@ -400,6 +400,11 @@ while running:
             for enemy in Config.enemies:
                 enemy.frozen = False
             Config.frozen_time = False
+        
+    # Если движение противника парализовано, сменить режим на №1
+    for enemy in Config.enemies_mode2:
+        if enemy.moving_blocked == True and pygame.time.get_ticks() - enemy.moving_blocked_time > enemy.timeout:
+            enemy.change_mode(2, 1)
 
     # Если база уничтожена, показать строку "GAME OVER"
     if Config.base.destroyed and not before_start:
