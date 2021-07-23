@@ -60,7 +60,8 @@ def a_star_search(graph, start, goal):
     return came_from, cost_so_far, iterations
 
 
-n = 25 # Шаг сетки графа
+n = Config.n
+
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, enemy_id, x):

@@ -1,6 +1,7 @@
 import pygame
 import os
 import math
+from structures import GridWithWeights
 
 
 class Config():
@@ -10,6 +11,7 @@ class Config():
     FPS = 60 # частота кадров в секунду
     TILE_SIZE = 50 # размер блока карты
     TILES_IN_ROW = int(WIDTH / TILE_SIZE) # Количество ячеек в ряду
+    n = TILE_SIZE / 2
 
     # Цвета (R, G, B)
     BLACK = (0, 0, 0)
@@ -138,6 +140,8 @@ class Config():
 
 
     # Цикл игры
+    graph = GridWithWeights(WIDTH, HEIGHT)
+
     appearance_delay = 1500
     player_speed = 4
     enemy_speed = 2

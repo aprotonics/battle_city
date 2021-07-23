@@ -5,66 +5,11 @@ import sys
 import math
 import datetime
 from config import Config
-from structures import PriorityQueue, GridWithWeights
 from characters.player import Player
 from characters.mob import Enemy, NormalEnemy, FastEnemy, EnhancedEnemy, HeavyEnemy
 from classes import Shield, Base, Tile, Spawn
 import collisions
 import render
-
-
-def create_path(start, goal):
-    start_time = datetime.datetime.now()
-
-    came_from, cost_so_far, iterations = a_star_search(Config.graph, start, goal)
-
-    current = goal
-    path = [current]
-    while current != start:
-        current = came_from[current]
-        path.append(current)
-
-    path.reverse()
-
-    end_time = datetime.datetime.now()
-    print("time", end_time - start_time)
-    print("iterations", iterations)
-
-    return path
-
-
-def heuristic(a, b):
-    (x1, y1) = a
-    (x2, y2) = b
-    return abs(x1 - x2) + abs(y1 - y2)
-
-
-def a_star_search(graph, start, goal):
-    iterations = 0
-    frontier = PriorityQueue() # Граница
-    frontier.push(start, 0)
-    came_from = {} # Откуда пришли
-    cost_so_far = {}
-    came_from[start] = None
-    cost_so_far[start] = 0
-
-    # Обход графа
-    while not frontier.empty():
-        current = frontier.extract()
-
-        if current == goal:
-            break
-
-        for element in graph.neighbours(current):
-            iterations += 1
-            new_cost = cost_so_far[current] + graph.cost(current, element)
-            if element not in cost_so_far or new_cost < cost_so_far[element]:
-                cost_so_far[element] = new_cost
-                priority = new_cost + heuristic(goal, element)
-                frontier.push(element, priority)
-                came_from[element] = current
-    
-    return came_from, cost_so_far, iterations
 
 
 def get_time():
@@ -144,18 +89,6 @@ Config.screen = pygame.display.set_mode((Config.WIDTH, Config.HEIGHT))
 pygame.display.set_caption("Battle city")
 Config.clock = pygame.time.Clock()
 Config.font_name = pygame.font.match_font("Arial")
-
-
-
-
-Config.graph = GridWithWeights(Config.WIDTH, Config.HEIGHT)
-
-## Алгоритм поиска пути
-Config.start = (0 * 50, 0 * 50)
-Config.goal = (4 * 50, 12 * 50)
-
-# Создание пути
-Config.path = create_path(Config.start, Config.goal)
 
 
 # Цикл игры

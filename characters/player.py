@@ -3,7 +3,9 @@ from config import Config
 from classes import PlayerBullet, Shield
 
 
-n = 25 # Шаг сетки графа
+n = Config.n
+
+
 class Player(pygame.sprite.Sprite):    
     def __init__(self, image, level=0, lives=3):
         pygame.sprite.Sprite.__init__(self)
@@ -11,7 +13,7 @@ class Player(pygame.sprite.Sprite):
         self.image = self.first_image
         self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
-        self.rect.x,  self.rect.y = Config.goal
+        self.rect.x,  self.rect.y = (4 * 50, 12 * 50)
         self.graph_coordinate_x = self.rect.x
         self.graph_coordinate_y = self.rect.y
         self.direction = "up"
@@ -158,7 +160,7 @@ class Player(pygame.sprite.Sprite):
         self.image = Config.player_images[0]
         self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
-        self.rect.x,  self.rect.y = Config.goal
+        self.rect.x,  self.rect.y = (4 * 50, 12 * 50)
         self.graph_coordinate_x = self.rect.x
         self.graph_coordinate_y = self.rect.y
         self.direction = "up"
