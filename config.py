@@ -144,6 +144,8 @@ class Config():
     player_image = player_images[0]
     player_level = 0
     player_lives = 3
+    enemy_mode1_duration = 2000
+    enemy_mode2_duration = 200000
 
     start_time = None
     enemy_respawn_time = None

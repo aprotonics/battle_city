@@ -75,7 +75,10 @@ def collide():
             else:
                 Explosion(hit.rect.center) 
                 for enemy in Config.enemies:
-                    enemy.change_mode(2, 1)
+                    if enemy.mode == 2:
+                        enemy.change_mode(2, 1)
+                    if enemy.mode == 3:
+                        enemy.change_mode(3, 1)
                 Config.player.hide()
                 Config.player.lives -= 1
                 Config.player.downgrade(Config.player.rect.center)
@@ -230,7 +233,9 @@ def collide():
             hit.stop()
             hit.last_rotate = Config.now
             hit.reverse()
-        if hit.mode == 2: # Если режим противника №2
+        if hit.mode == 2 or hit.mode == 3: # Если режим противника №2
+            Config.player.stop()
+            hit.stop()
             hit.last_shot = 0
             hit.shoot()
 
@@ -270,8 +275,6 @@ def collide():
             Explosion(Config.base.rect.center)
             Config.base.destroyed = True
             Config.base.destroyed_time = Config.now
-            for enemy in Config.enemies_mode3:
-                enemy.change_mode(3, 1)
             try:
                 Config.game_over_sound.play()
             except:

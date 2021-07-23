@@ -3,7 +3,7 @@ from config import Config
 from classes import PlayerBullet, Shield
 
 
-n = 50 # Шаг сетки графа
+n = 25 # Шаг сетки графа
 class Player(pygame.sprite.Sprite):    
     def __init__(self, image, level=0, lives=3):
         pygame.sprite.Sprite.__init__(self)

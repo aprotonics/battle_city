@@ -17,33 +17,24 @@ class Base(pygame.sprite.Sprite):
         self.destroyed = False
         self.destroyed_time = None
 
+        self.walls = [  (250, 550), (275, 550), (250, 575), (275, 575),
+                        (300, 550), (325, 550), (300, 575), (325, 575),
+                        (350, 550), (375, 550), (350, 575), (375, 575),
+                        (250, 600), (275, 600), (250, 625), (275, 625),
+                        (350, 600), (375, 600), (350, 625), (375, 625),
+                    ]
+
         Config.all_sprites.add(self)
 
     def clear_wall(self):
         for tile in Config.tiles: 
-            if (5 * 50 <= tile.rect.x < 6 * 50 and 11 * 50 <= tile.rect.y < 12 * 50 or
-                6 * 50 <= tile.rect.x < 7 * 50 and 11 * 50 <= tile.rect.y < 12 * 50 or
-                7 * 50 <= tile.rect.x < 8 * 50 and 11 * 50 <= tile.rect.y < 12 * 50 or
-                5 * 50 <= tile.rect.x < 6 * 50 and 12 * 50 <= tile.rect.y < 13 * 50 or
-                7 * 50 <= tile.rect.x < 8 * 50 and 12 * 50 <= tile.rect.y < 13 * 50):
+            if (tile.rect.x, tile.rect.y) in self.walls:
                 tile.kill()
     
     def create_wall(self, tile_type: str):
-        x_left = Config.base.rect.x - 50
-
-        # Создание трёх верхних блоков
-        for i in range(3):  
-            tile = Tile(x_left + i * 50, Config.base.rect.y - 50, tile_type)
-            tile = Tile(x_left + 25 + i * 50, Config.base.rect.y - 50, tile_type)
-            tile = Tile(x_left + i * 50, Config.base.rect.y - 25, tile_type)
-            tile = Tile(x_left + 25 + i * 50, Config.base.rect.y - 25, tile_type)
-
-        # Создание двух боковых блоков
-        for i in range(2):
-            tile = Tile(x_left + i * 100, Config.base.rect.y, tile_type)
-            tile = Tile(x_left + 25 + i * 100, Config.base.rect.y, tile_type)
-            tile = Tile(x_left + i * 100, Config.base.rect.y + 25, tile_type)
-            tile = Tile(x_left + 25 + i * 100, Config.base.rect.y + 25, tile_type)
+        for element in self.walls:
+            x, y = element
+            tile = Tile(x, y, tile_type)
 
     def upgrade_wall(self):
         self.has_shield = True

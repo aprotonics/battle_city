@@ -245,6 +245,7 @@ while running:
         show_game_over_screen()
         game_over = False
         before_start = True
+        Config.graph.walls = []
     
     if level_won:
         if Config.level_number == 30:
@@ -252,6 +253,8 @@ while running:
         else:
             Config.level_number += 1
         level_won = False
+
+        Config.graph.walls = []
 
         Config.start_time = pygame.time.get_ticks()
         Config.enemy_respawn_time = Config.start_time
@@ -382,7 +385,7 @@ while running:
     if Config.now - Config.last_enemy_hit_time > 1000 and Config.now - Config.powerup_hit_time > 1000:
         Config.current_score = ""
 
-    # Если игрок умер, игра окончена
+    # Если у игрока кончились жизни, игра окончена
     if Config.player.lives == 0 and Config.now - Config.last_player_hit_time > 2000 and not before_start:
         try:
             Config.game_over_sound.play()
@@ -405,10 +408,12 @@ while running:
                 enemy.frozen = False
             Config.frozen_time = False
 
-    # Если база уничтожена, показать строку "GAME OVER"
+    # Если база уничтожена
     if Config.base.destroyed and not before_start:
         if Config.game_over_string_top > Config.HEIGHT / 2:
             Config.game_over_string_top -= 3
+        for enemy in Config.enemies_mode3:
+            enemy.change_mode(3, 1)
 
     # Если база уничтожена, игра окончена
     if Config.base.destroyed and Config.now - Config.base.destroyed_time > 3000 and not before_start:

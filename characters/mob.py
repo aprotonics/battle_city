@@ -68,7 +68,7 @@ class Enemy(pygame.sprite.Sprite):
         self.id = enemy_id
         self.mode = 1
         self.mode1_start_time = pygame.time.get_ticks()
-        self.mode1_duration = 1500
+        self.mode1_duration = Config.enemy_mode1_duration
         self.rand_image = random.choice(Config.enemy_images)[0]
         self.image = self.rand_image
         self.image.set_colorkey(Config.BLACK)
@@ -99,7 +99,7 @@ class Enemy(pygame.sprite.Sprite):
     def __init_mode2__(self):
         self.mode = 2
         self.mode2_start_time = pygame.time.get_ticks()
-        self.mode2_duration = float("inf")
+        self.mode2_duration = Config.enemy_mode2_duration
         self.rect.x = round(self.rect.x / n) * n
         self.rect.y = round(self.rect.y / n) * n
         self.graph_coordinate_x = self.rect.x
@@ -134,36 +134,18 @@ class Enemy(pygame.sprite.Sprite):
 
         self.start = (self.graph_coordinate_x, self.graph_coordinate_y)
         self.step = 0
-        self.goal = (Config.base.rect.x, Config.base.rect.y)
+        goal1 = (Config.base.rect.x - 100, Config.base.rect.y)
+        goal2 = (Config.base.rect.x, Config.base.rect.y - 100)
+        goal3 = (Config.base.rect.x + 100, Config.base.rect.y)
+        self.path_to_base, self.goal = self.get_min_path_to_base(goal1, goal2, goal3)
+
         print(self.start)
         print(self.goal)
 
-
-        # Добавить удаление стен базы из списка стен графа
-        # Добавить список стен базы в класс Base
-
-        # base_walls = [(5 * 50, 11 * 50), (6 * 50, 11 * 50), (7 * 50, 11 * 50), (5 * 50, 12 * 50), (7 * 50, 12 * 50)]
-
-        # Config.base.rect.centerx
-        # Config.base.rect.centery
-
-        # x_list = []
-        # y_list = []
-
-        # base_walls = [(Config.base.rect.centerx + i, Config.base.rect.centery + j) for i in x_list for j in y_list]
-        
-        # for wall in base_walls:
-        #     Config.graph.walls.remove(wall)
-
-        # print(Config.graph.walls)
-        # print(base_walls)
-
-        
-        self.path_to_base = create_path(self.start, self.goal)
         self.current_position = self.path_to_base[self.step]
         print(f"{self.id}.{self.step}. {self.current_position}")
         self.next_position = self.path_to_base[self.step + 1]
-        self.path_update_delay = 3000
+        self.path_update_delay = float("inf")
         self.path_update_time = pygame.time.get_ticks()
     
         self.moving_blocked = False
@@ -314,25 +296,6 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.x -= self.speedx
         self.speedx = 0
         self.speedy = 0
-        
-    def shoot(self):
-        now = pygame.time.get_ticks()
-        if now - self.last_shot > self.shoot_delay:
-            self.last_shot = pygame.time.get_ticks()
-            if self.direction == "up":
-                x = self.rect.centerx
-                y = self.rect.top
-            if self.direction == "right":
-                x = self.rect.right
-                y = self.rect.centery
-            if self.direction == "down":
-                x = self.rect.centerx
-                y = self.rect.bottom
-            if self.direction == "left":
-                x = self.rect.left
-                y = self.rect.centery
-            enemy_bullet = EnemyBullet(x, y, self.direction, speed=self.bullet_speed, strength=self.bullet_strength)
-            Config.enemy_bullets.add(enemy_bullet)
 
     def update_path(self, start, goal): 
         print(start, goal)
@@ -342,32 +305,74 @@ class Enemy(pygame.sprite.Sprite):
         self.current_position = self.path_to_player[self.step]
         self.next_position = self.path_to_player[self.step + 1]
     
-    def change_next_position(self):
+    def get_min_path_to_base(self, goal1, goal2, goal3):
+        path_to_base1 = create_path(self.start, goal1)
+        path_to_base2 = create_path(self.start, goal2)
+        path_to_base3 = create_path(self.start, goal3)
+        
+        min_len_path_to_base = min(len(path_to_base1), len(path_to_base2), len(path_to_base3))
+        
+        if len(path_to_base1) == min_len_path_to_base:
+            goal =  goal1
+            path_to_base = path_to_base1
+        elif len(path_to_base2) == min_len_path_to_base:
+            goal =  goal2
+            path_to_base = path_to_base2
+        elif len(path_to_base3) == min_len_path_to_base:
+            goal =  goal3
+            path_to_base = path_to_base1
+        
+        return path_to_base, goal
+    
+    def change_next_position(self, path):
         if self.current_position != self.next_position:
             self.step += 1
             self.current_position = self.next_position 
             print(f"{self.id}.{self.step}. {self.current_position}")       
-            if self.step < len(self.path_to_player) - 1:
-                self.next_position = self.path_to_player[self.step + 1]
+            if self.step < len(path) - 1:
+                self.next_position = path[self.step + 1]
     
+    def reset_mode2_properties(self):
+        delattr(self, "mode2_start_time")
+        delattr(self, "mode2_duration")
+        delattr(self, "graph_coordinate_x")
+        delattr(self, "graph_coordinate_y")
+        delattr(self, "start")
+        delattr(self, "step")
+        delattr(self, "goal")
+        delattr(self, "path_to_player")
+        delattr(self, "current_position")
+        delattr(self, "next_position")
+        delattr(self, "path_update_delay")
+        delattr(self, "path_update_time")
+        delattr(self, "moving_blocked")
+        delattr(self, "moving_blocked_time")
+        delattr(self, "timeout")
+        delattr(self, "occupied_points")
+    
+    def reset_mode3_properties(self):
+        delattr(self, "path_to_base")
+
     def change_mode(self, from_mode, to_mode): # Дописать
         if to_mode == 2:
             self.__init_mode2__()
         if to_mode == 3:
             self.__init_mode3__()
         if to_mode == 1 and from_mode == 2:
+            self.reset_mode2_properties()      
             self.mode = 1
             self.mode1_start_time = pygame.time.get_ticks()
-            self.mode1_duration = 2000
+            self.mode1_duration = Config.enemy_mode1_duration
             Config.enemies_mode2.remove(self)
             Config.enemies_mode1.add(self)
         if to_mode == 1 and from_mode == 3:
+            self.reset_mode3_properties()
+            self.reset_mode2_properties()  
             self.mode = 1
             self.mode1_start_time = pygame.time.get_ticks()
-            self.mode1_duration = 2000
+            self.mode1_duration = Config.enemy_mode1_duration
             Config.enemies_mode3.remove(self)
             Config.enemies_mode1.add(self)
-        # self.mode = to_mode
 
     def set_free_graph_coordinates(self):
         x, y = (self.graph_coordinate_x, self.graph_coordinate_y)
@@ -393,22 +398,42 @@ class Enemy(pygame.sprite.Sprite):
         
         for point in points_into_radius:
             self.occupied_points.add(point)
-        
-    def update(self):
+    
+    def shoot(self):
         now = pygame.time.get_ticks()
-        
-        # Смена режима после появления
-        # From 1 to 2
-        if self.mode == 1 and now - self.mode1_start_time > self.mode1_duration:
-            self.change_mode(1, 2)
-        # From 2 to 3
-        if self.mode == 2 and now - self.mode2_start_time > self.mode2_duration:
-            self.change_mode(2, 3)
+        if now - self.last_shot > self.shoot_delay:
+            self.last_shot = pygame.time.get_ticks()
+            if self.direction == "up":
+                x = self.rect.centerx
+                y = self.rect.top
+            if self.direction == "right":
+                x = self.rect.right
+                y = self.rect.centery
+            if self.direction == "down":
+                x = self.rect.centerx
+                y = self.rect.bottom
+            if self.direction == "left":
+                x = self.rect.left
+                y = self.rect.centery
+            enemy_bullet = EnemyBullet(x, y, self.direction, speed=self.bullet_speed, strength=self.bullet_strength)
+            Config.enemy_bullets.add(enemy_bullet)
 
+    def update(self):
         if not self.frozen:
+            now = pygame.time.get_ticks()
+            
+            # Смена режима после появления
+            # From 1 to 2
+            if self.mode == 1 and now - self.mode1_start_time > self.mode1_duration:
+                self.change_mode(1, 2)
+            # From 2 to 3
+            if self.mode == 2 and now - self.mode2_start_time > self.mode2_duration:
+                self.change_mode(2, 3)
+        
             if self.mode == 1: # Режим №1
                 self.move()
                 
+                # Если прошла задержка, повернуться
                 if now - self.last_rotate > self.moving_time:
                     self.last_rotate = pygame.time.get_ticks()
                     self.stop()
@@ -420,10 +445,10 @@ class Enemy(pygame.sprite.Sprite):
                     self.stop()
                     self.rotate()
 
-            elif self.mode == 2 or mode == 3: # Режим №2 и #3
+            elif self.mode == 2: # Режим №2
                 # Если точка пути достигнута, перейти к следующей
                 if self.rect.x == self.next_position[0] and self.rect.y == self.next_position[1]:
-                    self.change_next_position()
+                    self.change_next_position(self.path_to_player)
                 
                 # Если прошла задержка, обновить путь
                 if now - self.path_update_time > self.path_update_delay:
@@ -455,6 +480,37 @@ class Enemy(pygame.sprite.Sprite):
 
                 if not self.moving_blocked:
                     self.move_mode2()
+            
+            elif self.mode == 3: # Режим №3
+                # Если точка пути достигнута, перейти к следующей
+                if self.rect.x == self.next_position[0] and self.rect.y == self.next_position[1]:
+                    self.change_next_position(self.path_to_base)
+
+                # Если путь не пройден и следующая точка пути не занята, продолжить движение
+                if self.current_position != self.next_position:
+                    self.remove(Config.enemies_mode3)
+                    for enemy in Config.enemies_mode3:
+                        if self.path_to_base[self.step + 1] in enemy.occupied_points:
+                            self.moving_blocked = True
+                            self.moving_blocked_time = now
+                            break
+                    else:
+                        self.moving_blocked = False
+                    self.add(Config.enemies_mode3)
+                    
+                    if not self.moving_blocked:
+                        self.move_mode2()
+                
+                # Если путь пройден, повернуться к базе
+                if self.current_position == self.next_position:
+                    if self.rect.x < Config.base.rect.x:
+                        self.direction = "right"
+                    elif self.rect.y < Config.base.rect.y:
+                        self.direction = "down"
+                    elif self.rect.x > Config.base.rect.x:
+                        self.direction = "left"
+
+                    self.rotate_mode2(self.direction)
 
             self.shoot()
 
