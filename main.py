@@ -157,9 +157,6 @@ Config.goal = (4 * 50, 12 * 50)
 # Создание пути
 Config.path = create_path(Config.start, Config.goal)
 
-print(Config.path)
-print()
-
 
 # Цикл игры
 before_start = True
