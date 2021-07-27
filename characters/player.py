@@ -8,7 +8,7 @@ n = Config.n
 
 class Player(pygame.sprite.Sprite):    
     def __init__(self, image, level=0, lives=3):
-        pygame.sprite.Sprite.__init__(self)
+        pygame.sprite.Sprite.__init__(self)      
         self.first_image = image
         self.image = self.first_image
         self.image.set_colorkey(Config.BLACK)
@@ -18,8 +18,10 @@ class Player(pygame.sprite.Sprite):
         self.graph_coordinate_y = self.rect.y
         self.direction = "up"
 
+        self.speed = Config.player_speed
         self.speedx = 0
         self.speedy = 0
+        self.moving_blocked = False
 
         self.shoot_delay = 500
         self.last_shot = pygame.time.get_ticks()
@@ -44,7 +46,10 @@ class Player(pygame.sprite.Sprite):
             self.armor = 150
             self.bullet_strength = 2
 
+        self.layer = 0
+
         Config.all_sprites.add(self)
+        Config.layers.add(self)
 
     def rotate(self, direction):
         angle = 0
@@ -64,27 +69,28 @@ class Player(pygame.sprite.Sprite):
         self.rect.center = old_center
 
     def move(self):
-        self.speedx = 0
-        self.speedy = 0
-
         keystate = pygame.key.get_pressed()
-        # Проверка, какая клавиша нажата. Приоритет UP -> RIGHT -> DOWN -> LEFT
-        if keystate[pygame.K_UP] == True:
-            self.direction = "up"
-            self.rotate(self.direction)
-            self.speedy = -Config.player_speed
-        elif keystate[pygame.K_RIGHT] == True:
-            self.direction = "right"
-            self.rotate(self.direction)  
-            self.speedx = Config.player_speed
-        elif keystate[pygame.K_DOWN] == True:
-            self.direction = "down"
-            self.rotate(self.direction) 
-            self.speedy = Config.player_speed  
-        elif keystate[pygame.K_LEFT] == True:
-            self.direction = "left"
-            self.rotate(self.direction) 
-            self.speedx = -Config.player_speed
+        if not self.moving_blocked:
+            self.speedx = 0
+            self.speedy = 0
+
+            # Проверка, какая клавиша нажата. Приоритет UP -> RIGHT -> DOWN -> LEFT
+            if keystate[pygame.K_UP] == True:
+                self.direction = "up"
+                self.rotate(self.direction)
+                self.speedy = -self.speed
+            elif keystate[pygame.K_RIGHT] == True:
+                self.direction = "right"
+                self.rotate(self.direction)  
+                self.speedx = self.speed
+            elif keystate[pygame.K_DOWN] == True:
+                self.direction = "down"
+                self.rotate(self.direction) 
+                self.speedy = self.speed
+            elif keystate[pygame.K_LEFT] == True:
+                self.direction = "left"
+                self.rotate(self.direction) 
+                self.speedx = -self.speed
 
         self.rect.x += self.speedx
         self.rect.y += self.speedy
@@ -109,7 +115,6 @@ class Player(pygame.sprite.Sprite):
         
         # Если ближайшая вершина изменилась
         if nearest_node[0] != self.graph_coordinate_x or nearest_node[1] != self.graph_coordinate_y:
-            print("player_node", nearest_node)
             self.graph_coordinate_x = nearest_node[0]
             self.graph_coordinate_y = nearest_node[1]
 

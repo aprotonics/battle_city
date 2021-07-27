@@ -156,32 +156,37 @@ def collide():
             Config.player.stop()
             break
         if hit.type == "ICE":
-            pass
+            Config.player.speed = 6
+            Config.player.moving_blocked = True
+            break
+    else:
+        Config.player.speed = 4
+        Config.player.moving_blocked = False
 
     # Проверка столкновений противника с элементом стены
     hits = pygame.sprite.groupcollide(Config.enemies, Config.tiles, False, False)
     for hit in hits:
-        if hit.mode == 1: # Если режим противника №1
-            for tile in hits[hit]:
-                if tile.type == "STEEL":
-                    hit.stop()
-                    hit.last_rotate = Config.now
-                    hit.rotate()
-                    break
-                if tile.type == "BRICK":
-                    hit.stop()
-                    hit.last_rotate = Config.now
-                    hit.rotate()
-                    break
-                if tile.type == "GRASS":
-                    pass
-                if tile.type == "WATER":
-                    hit.stop()
-                    hit.last_rotate = Config.now
-                    hit.rotate()
-                    break
-                if tile.type == "ICE":
-                    pass
+        for tile in hits[hit]:
+            if tile.type == "STEEL":
+                hit.stop()
+                hit.last_rotate = Config.now
+                hit.rotate()
+                break
+            if tile.type == "BRICK":
+                hit.stop()
+                hit.last_rotate = Config.now
+                hit.rotate()
+                break
+            if tile.type == "GRASS":
+                pass
+            if tile.type == "WATER":
+                hit.stop()
+                hit.last_rotate = Config.now
+                hit.rotate()
+                break
+            if tile.type == "ICE":
+                hit.speed = 2 # Доделать, возможно через добавление новой группы
+                break
 
     # Проверка столкновений игрока и улучшений
     hits = pygame.sprite.spritecollide(Config.player, Config.powerups, True)

@@ -94,8 +94,11 @@ class Enemy(pygame.sprite.Sprite):
         self.armor = 0
         self.frozen = False
 
+        self.layer = 0
+
         Config.all_sprites.add(self)
         Config.new_enemies.add(self)
+        Config.layers.add(self)
 
     def __init_mode2__(self):
         self.mode = 2
@@ -114,7 +117,8 @@ class Enemy(pygame.sprite.Sprite):
         self.path_to_player = create_path(self.start, self.goal)
         self.current_position = self.path_to_player[self.step]
         print(f"{self.id}.{self.step}. {self.current_position}")
-        self.next_position = self.path_to_player[self.step + 1]
+        if self.step < len(self.path_to_player) - 1:
+            self.next_position = self.path_to_player[self.step + 1]
         self.path_update_delay = 3000
         self.path_update_time = pygame.time.get_ticks()
 
@@ -145,7 +149,8 @@ class Enemy(pygame.sprite.Sprite):
 
         self.current_position = self.path_to_base[self.step]
         print(f"{self.id}.{self.step}. {self.current_position}")
-        self.next_position = self.path_to_base[self.step + 1]
+        if self.step < len(self.path_to_base) - 1:
+            self.next_position = self.path_to_base[self.step + 1]
         self.path_update_delay = float("inf")
         self.path_update_time = pygame.time.get_ticks()
     
@@ -304,7 +309,8 @@ class Enemy(pygame.sprite.Sprite):
         print("path", self.path_to_player)  
         self.step = 0
         self.current_position = self.path_to_player[self.step]
-        self.next_position = self.path_to_player[self.step + 1]
+        if self.step < len(self.path_to_player) - 1:
+            self.next_position = self.path_to_player[self.step + 1]
     
     def get_min_path_to_base(self, goal1, goal2, goal3):
         path_to_base1 = create_path(self.start, goal1)
@@ -471,10 +477,11 @@ class Enemy(pygame.sprite.Sprite):
                 # Если следующая точка пути не занята, продолжить движение
                 self.remove(Config.enemies_mode2)
                 for enemy in Config.enemies_mode2:
-                    if self.path_to_player[self.step + 1] in enemy.occupied_points:
-                        self.moving_blocked = True
-                        self.moving_blocked_time = now
-                        break
+                    if self.step < len(self.path_to_player) - 1: # Проверка на длину пути
+                        if self.path_to_player[self.step + 1] in enemy.occupied_points:
+                            self.moving_blocked = True
+                            self.moving_blocked_time = now
+                            break
                 else:
                     self.moving_blocked = False
                 self.add(Config.enemies_mode2)

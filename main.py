@@ -131,7 +131,7 @@ while running:
         Config.current_score = ""
         Config.current_score_centerx = -100
         Config.current_score_top = -100
-        Config.level_number = 1
+        Config.level_number = 28
         Config.total_score = 0
         Config.total_enemy = 5         # Количество противников на весь уровень
         Config.remaining_enemy_count = Config.total_enemy # Оставшееся количество противников

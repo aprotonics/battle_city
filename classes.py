@@ -76,8 +76,11 @@ class Bullet(pygame.sprite.Sprite):
         self.strength = strength
         self.rotate(self.direction)
         
+        self.layer = 0
+
         Config.all_sprites.add(self)
         Config.bullets.add(self)
+        Config.layers.add(self)
 
     def rotate(self, direction):
         angle = 0
@@ -135,7 +138,10 @@ class Explosion(pygame.sprite.Sprite):
         self.last_update = pygame.time.get_ticks()
         self.frame_rate = 120
 
+        self.layer = 0
+
         Config.all_sprites.add(self)
+        Config.layers.add(self)
     
     def update(self):
         now = pygame.time.get_ticks()
@@ -161,8 +167,11 @@ class Powerup(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = center
 
+        self.layer = 0
+
         Config.all_sprites.add(self)
         Config.powerups.add(self)
+        Config.layers.add(self)
 
     def update(self):
         pass
@@ -209,8 +218,11 @@ class Shield(pygame.sprite.Sprite):
         self.spawn_time = pygame.time.get_ticks()
         self.existance_time = 4000
 
+        self.layer = 0
+
         Config.all_sprites.add(self)
         Config.shields.add(self)
+        Config.layers.add(self)
 
     def update(self):
         now = pygame.time.get_ticks()
@@ -240,23 +252,23 @@ class Tile(pygame.sprite.Sprite):
 
         if self.type == "STEEL":
             self.layer = 0
-        if self.type == "BRICK":
+        elif self.type == "BRICK":
             self.layer = 0
-        if self.type == "GRASS":
+        elif self.type == "GRASS":
             self.layer = 1
-        if self.type == "WATER":
+        elif self.type == "WATER":
             self.subtype = 0
             self.layer = -1
             self.last_update = pygame.time.get_ticks()
             self.frame_rate = 120
-        if self.type == "ICE":
+        elif self.type == "ICE":
             self.layer = -1
 
         Config.all_sprites.add(self)
         Config.tiles.add(self)
         Config.layers.add(self)
 
-        if self.type != "GRASS":
+        if self.type != "GRASS" and self.type != "ICE":
             Config.graph.walls.append((x, y))
         
     def update(self):
