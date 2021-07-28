@@ -431,10 +431,12 @@ class Enemy(pygame.sprite.Sprite):
             
             # Смена режима после появления
             # From 1 to 2
-            if self.mode == 1 and now - self.mode1_start_time > self.mode1_duration:
+            if (self.mode == 1 and Config.player.hidden == False and
+                now - self.mode1_start_time > self.mode1_duration):
                 self.change_mode(1, 2)
             # From 2 to 3
-            if self.mode == 2 and now - self.mode2_start_time > self.mode2_duration:
+            if (self.mode == 2 and Config.base.destroyed == False and
+                now - self.mode2_start_time > self.mode2_duration):
                 self.change_mode(2, 3)
         
             if self.mode == 1: # Режим №1

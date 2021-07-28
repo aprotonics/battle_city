@@ -131,6 +131,9 @@ class Player(pygame.sprite.Sprite):
             self.rect.y -= self.speedy
         if self.direction == "left":
             self.rect.x -= self.speedx
+        
+        self.speedx = 0
+        self.speedy = 0
 
     def shoot(self):
         now = pygame.time.get_ticks()

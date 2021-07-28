@@ -112,6 +112,7 @@ while running:
         Config.all_sprites = pygame.sprite.Group()
         Config.enemies = pygame.sprite.Group()
         Config.new_enemies = pygame.sprite.Group()
+        Config.enemies_on_ice = pygame.sprite.Group()
         Config.enemies_mode1 = pygame.sprite.Group()
         Config.enemies_mode2 = pygame.sprite.Group()
         Config.enemies_mode3 = pygame.sprite.Group()
@@ -131,7 +132,7 @@ while running:
         Config.current_score = ""
         Config.current_score_centerx = -100
         Config.current_score_top = -100
-        Config.level_number = 28
+        Config.level_number = 1
         Config.total_score = 0
         Config.total_enemy = 5         # Количество противников на весь уровень
         Config.remaining_enemy_count = Config.total_enemy # Оставшееся количество противников
@@ -198,6 +199,7 @@ while running:
         Config.all_sprites = pygame.sprite.Group()
         Config.enemies = pygame.sprite.Group()
         Config.new_enemies = pygame.sprite.Group()
+        Config.enemies_on_ice = pygame.sprite.Group()
         Config.enemies_mode1 = pygame.sprite.Group()
         Config.enemies_mode2 = pygame.sprite.Group()
         Config.enemies_mode3 = pygame.sprite.Group()

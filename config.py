@@ -159,6 +159,7 @@ class Config():
     all_sprites = None
     enemies = None
     new_enemies = None
+    enemies_on_ice = None
     enemies_mode1 = None
     enemies_mode2 = None
     enemies_mode3 = None

@@ -142,26 +142,33 @@ def collide():
                 Powerup(hit.rect.center)     
     
     # Проверка столкновений игрока с элементом стены
+    ice_count = 0
     hits = pygame.sprite.spritecollide(Config.player, Config.tiles, False)
     for hit in hits:
         if hit.type == "STEEL":
             Config.player.stop()
-            break
         if hit.type == "BRICK":
             Config.player.stop()
-            break
         if hit.type == "GRASS":
             pass
         if hit.type == "WATER":
             Config.player.stop()
-            break
         if hit.type == "ICE":
-            Config.player.speed = 6
-            Config.player.moving_blocked = True
-            break
-    else:
+            ice_count += 1
+
+    # Обработка поведения игрока на льду
+    if len(hits) >= 4 and ice_count == len(hits):
+        Config.player.speed = 6
+        Config.player.moving_blocked = True
+    if Config.player.speedx == 0 and Config.player.speedy == 0:
         Config.player.speed = 4
         Config.player.moving_blocked = False
+
+    # Проверка отсутствия столкновений игрока с элементом стены "ICE"
+    hits = pygame.sprite.spritecollide(Config.player, Config.tiles, False)
+    if not hits:
+            Config.player.speed = 4
+            Config.player.moving_blocked = False
 
     # Проверка столкновений противника с элементом стены
     hits = pygame.sprite.groupcollide(Config.enemies, Config.tiles, False, False)
@@ -178,14 +185,27 @@ def collide():
                 hit.rotate()
                 break
             if tile.type == "GRASS":
-                pass
+                break
             if tile.type == "WATER":
                 hit.stop()
                 hit.last_rotate = Config.now
                 hit.rotate()
                 break
             if tile.type == "ICE":
-                hit.speed = 2 # Доделать, возможно через добавление новой группы
+                hit.speed = 4
+                Config.enemies_on_ice.add(hit)
+
+    # Проверка отсутствия столкновений противника с элементом стены "ICE"
+    hits = pygame.sprite.groupcollide(Config.enemies_on_ice, Config.tiles, False, False)
+    if not hits:
+        for enemy in Config.enemies_on_ice:
+            enemy.speed = 2
+            Config.enemies_on_ice.remove(enemy)
+    for hit in hits:
+        for tile in hits[hit]:
+            if tile.type != "ICE":
+                hit.speed = 2
+                Config.enemies_on_ice.remove(hit)
                 break
 
     # Проверка столкновений игрока и улучшений
