@@ -346,6 +346,8 @@ while running:
             Config.game_over_string_top -= 3
         for enemy in Config.enemies_mode3:
             enemy.change_mode(3, 1)
+        for enemy in Config.enemies_mode2:
+            enemy.change_mode(2, 1)
 
     # Если база уничтожена, игра окончена
     if Config.base.destroyed and Config.now - Config.base.destroyed_time > 3000 and not before_start:
@@ -358,6 +360,10 @@ while running:
     for enemy in Config.enemies_mode2:
         if enemy.moving_blocked == True and pygame.time.get_ticks() - enemy.moving_blocked_time > enemy.timeout:
             enemy.change_mode(2, 1)
+    
+    for enemy in Config.enemies_mode3:
+        if enemy.moving_blocked == True and pygame.time.get_ticks() - enemy.moving_blocked_time > enemy.timeout:
+            enemy.change_mode(3, 1)
     
     ##### Визуализация (сборка)
     render.render()

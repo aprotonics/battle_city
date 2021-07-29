@@ -50,6 +50,13 @@ def collide():
         if hit.type == "ICE":
             pass
 
+    # Проверка столкновений пули противника с противником (дружественный огонь)
+    hits = pygame.sprite.groupcollide(Config.enemies, Config.enemy_bullets, False, False)
+    for enemy in hits:
+        for bullet in hits[enemy]:
+            if enemy.id != bullet.owner_id:
+                bullet.kill()
+
     # Проверка столкновений пули и щита
     for shield in Config.shields:
         hits = pygame.sprite.spritecollide(Config.shield, Config.enemy_bullets, True)
@@ -144,16 +151,16 @@ def collide():
     # Проверка столкновений игрока с элементом стены
     ice_count = 0
     hits = pygame.sprite.spritecollide(Config.player, Config.tiles, False)
-    for hit in hits:
-        if hit.type == "STEEL":
+    for tile in hits:
+        if tile.type == "STEEL":
             Config.player.stop()
-        if hit.type == "BRICK":
+        if tile.type == "BRICK":
             Config.player.stop()
-        if hit.type == "GRASS":
+        if tile.type == "GRASS":
             pass
-        if hit.type == "WATER":
+        if tile.type == "WATER":
             Config.player.stop()
-        if hit.type == "ICE":
+        if tile.type == "ICE":
             ice_count += 1
 
     # Обработка поведения игрока на льду
@@ -170,30 +177,53 @@ def collide():
             Config.player.speed = 4
             Config.player.moving_blocked = False
 
-    # Проверка столкновений противника с элементом стены
-    hits = pygame.sprite.groupcollide(Config.enemies, Config.tiles, False, False)
-    for hit in hits:
-        for tile in hits[hit]:
+    # Проверка столкновений противника в режиме 1 с элементом стены
+    hits = pygame.sprite.groupcollide(Config.enemies_mode1, Config.tiles, False, False)
+    for enemy in hits:
+        for tile in hits[enemy]:
             if tile.type == "STEEL":
-                hit.stop()
-                hit.last_rotate = Config.now
-                hit.rotate()
+                enemy.stop()
+                enemy.last_rotate = Config.now
+                enemy.rotate()
                 break
             if tile.type == "BRICK":
-                hit.stop()
-                hit.last_rotate = Config.now
-                hit.rotate()
+                enemy.stop()
+                enemy.last_rotate = Config.now
+                enemy.rotate()
                 break
             if tile.type == "GRASS":
-                break
+                pass
             if tile.type == "WATER":
-                hit.stop()
-                hit.last_rotate = Config.now
-                hit.rotate()
+                enemy.stop()
+                enemy.last_rotate = Config.now
+                enemy.rotate()
                 break
             if tile.type == "ICE":
-                hit.speed = 4
-                Config.enemies_on_ice.add(hit)
+                print("Ice")
+                enemy.speed = 4
+                Config.enemies_on_ice.add(enemy)
+                
+    # !!!Проверка столкновений противника в режиме 2 с элементом стены
+    hits = pygame.sprite.groupcollide(Config.enemies_mode2, Config.tiles, False, False)
+    for enemy in hits:
+        for tile in hits[enemy]:
+            if tile.type == "ICE":
+                enemy.ice_count += 1
+        if len(hits[enemy]) >= 4 and enemy.ice_count == len(hits[enemy]):
+            enemy.speed = 4
+            Config.enemies_on_ice.add(enemy)
+        enemy.ice_count = 0
+                 
+    # !!!Проверка столкновений противника в режиме 3 с элементом стены
+    hits = pygame.sprite.groupcollide(Config.enemies_mode3, Config.tiles, False, False)
+    for enemy in hits:
+        for tile in hits[enemy]:
+            if tile.type == "ICE":
+                enemy.ice_count += 1
+        if len(hits[enemy]) >= 4 and enemy.ice_count == len(hits[enemy]):
+            enemy.speed = 4
+            Config.enemies_on_ice.add(enemy)
+        enemy.ice_count = 0
 
     # Проверка отсутствия столкновений противника с элементом стены "ICE"
     hits = pygame.sprite.groupcollide(Config.enemies_on_ice, Config.tiles, False, False)
@@ -201,12 +231,15 @@ def collide():
         for enemy in Config.enemies_on_ice:
             enemy.speed = 2
             Config.enemies_on_ice.remove(enemy)
-    for hit in hits:
-        for tile in hits[hit]:
-            if tile.type != "ICE":
-                hit.speed = 2
-                Config.enemies_on_ice.remove(hit)
-                break
+    else:
+        for enemy in hits:
+            for tile in hits[enemy]:
+                if tile.type == "ICE":
+                    enemy.ice_count += 1
+            if enemy.ice_count < 4:        
+                enemy.speed = 2
+                Config.enemies_on_ice.remove(enemy)
+            enemy.ice_count = 0
 
     # Проверка столкновений игрока и улучшений
     hits = pygame.sprite.spritecollide(Config.player, Config.powerups, True)
@@ -258,28 +291,50 @@ def collide():
             hit.stop()
             hit.last_rotate = Config.now
             hit.reverse()
-        if hit.mode == 2 or hit.mode == 3: # Если режим противника №2
+        if hit.mode == 2 or hit.mode == 3: # Если режим противника №2 или №3
             Config.player.stop()
             hit.stop()
             hit.last_shot = 0
             hit.shoot()
 
-    # Проверка столкновений противников друг с другом
-    for enemy in Config.enemies:
-        enemy.remove(Config.enemies)
-        if enemy.mode == 1:
-            hits = pygame.sprite.spritecollide(enemy, Config.enemies, False)
-            for hit in hits:
-                if hit.frozen != True:
-                    hit.stop()
-                    hit.last_rotate = Config.now
-                    hit.reverse()
-                if enemy.frozen != True:
-                    enemy.stop() 
-                    enemy.last_rotate = Config.now
-                    enemy.reverse()
+    # Проверка столкновений противников в режиме 1 друг с другом
+    for enemy in Config.enemies_mode1:
+        enemy.remove(Config.enemies_mode1)
+        hits = pygame.sprite.spritecollide(enemy, Config.enemies_mode1, False)
+        for hit in hits:
+            if hit.frozen != True:
+                hit.stop()
+                hit.last_rotate = Config.now
+                hit.reverse()
+            if enemy.frozen != True:
+                enemy.stop() 
+                enemy.last_rotate = Config.now
+                enemy.reverse()
     
-        enemy.add(Config.enemies)
+        enemy.add(Config.enemies_mode1)
+
+    # Проверка столкновений противников в режиме 1 с противниками в режиме 2
+    hits = pygame.sprite.groupcollide(Config.enemies_mode1, Config.enemies_mode2, False, False)
+    for enemy_1 in hits:
+        enemy_1.stop()
+        for enemy_2 in hits[enemy_1]:
+            enemy_2.path_update_time = pygame.time.get_ticks()
+            Config.graph.walls.append((enemy_1.graph_coordinate_x, enemy_1.graph_coordinate_y))
+            start = (enemy_2.graph_coordinate_x, enemy_2.graph_coordinate_y)
+            goal = (Config.player.graph_coordinate_x, Config.player.graph_coordinate_y)
+            enemy_2.update_path(start, goal)
+            Config.graph.walls.remove((enemy_1.graph_coordinate_x, enemy_1.graph_coordinate_y))
+    
+    # Проверка столкновений противников в режиме 1 с противниками в режиме 3
+    hits = pygame.sprite.groupcollide(Config.enemies_mode1, Config.enemies_mode3, False, False)
+    for enemy_1 in hits:
+        enemy_1.stop()
+        for enemy_3 in hits[enemy_1]:
+            enemy_3.path_update_time = pygame.time.get_ticks()
+            Config.graph.walls.append((enemy_1.graph_coordinate_x, enemy_1.graph_coordinate_y))
+            start = (enemy_3.graph_coordinate_x, enemy_3.graph_coordinate_y)
+            enemy_3.path_to_base, enemy_3.goal = enemy_3.get_min_path_to_base()
+            Config.graph.walls.remove((enemy_1.graph_coordinate_x, enemy_1.graph_coordinate_y))
 
     # Проверка столкновений игрока и базы
     if pygame.sprite.collide_rect(Config.player, Config.base):

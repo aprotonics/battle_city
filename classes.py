@@ -64,8 +64,9 @@ class Base(pygame.sprite.Sprite):
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, centerx, centery, direction, speed=10, strength=1):
+    def __init__(self, centerx, centery, direction, owner_id=None, speed=10, strength=1):
         pygame.sprite.Sprite.__init__(self)
+        self.owner_id = owner_id
         self.image = Config.bullet_img
         self.image.fill(Config.YELLOW)
         self.rect = self.image.get_rect()

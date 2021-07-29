@@ -29,7 +29,7 @@ class Player(pygame.sprite.Sprite):
         self.bullet_strength = 1
         
         self.life = 100
-        self.armor = 0
+        self.armor = 100
         self.lives = lives
         self.level = level
         self.hidden = False
