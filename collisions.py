@@ -291,18 +291,20 @@ def collide():
             hit.stop()
             hit.last_rotate = Config.now
             hit.reverse()
-        if hit.mode == 2: # Если режим противника №2
-            Config.player.stop()
-            hit.change_mode(2, 1)
-            hit.stop()
-            hit.last_rotate = Config.now
-            hit.reverse()
-        if hit.mode == 3: # Если режим противника №3
-            Config.player.stop()
-            hit.change_mode(3, 1)
-            hit.stop()
-            hit.last_rotate = Config.now
-            hit.reverse()
+        if hit.mode == 2 or hit.mode == 3: # Если режим противника №2 или №3
+            Config.player.hide()
+            Config.player.lives -= 1
+            Config.player.downgrade(Config.player.rect.center)
+            Explosion(hit.rect.center)
+            for enemy in Config.enemies:
+                if enemy.mode == 2:
+                    enemy.change_mode(2, 1)
+                if enemy.mode == 3:
+                    enemy.change_mode(3, 1)
+            try:
+                Config.explosion_sound.play()
+            except:
+                pass
 
     # Проверка столкновений противников в режиме 1 друг с другом
     for enemy in Config.enemies_mode1:
