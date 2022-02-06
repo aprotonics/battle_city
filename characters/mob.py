@@ -67,8 +67,8 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, enemy_id, x):
         pygame.sprite.Sprite.__init__(self)
         self.ice_count = 0
-        
         self.id = enemy_id
+        self.spawn_x = x
         self.mode = 1
         self.mode1_start_time = pygame.time.get_ticks()
         self.mode1_duration = Config.enemy_mode1_duration
@@ -76,7 +76,7 @@ class Enemy(pygame.sprite.Sprite):
         self.image = self.rand_image
         self.image.set_colorkey(Config.BLACK)
         self.rect = self.image.get_rect()
-        self.rect.x = x
+        self.rect.x = self.spawn_x
         self.rect.y = 0
         self.graph_coordinate_x = self.rect.x
         self.graph_coordinate_y =  self.rect.y

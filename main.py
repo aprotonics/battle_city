@@ -3,13 +3,19 @@ import random
 import os
 import sys
 import math
-import datetime
 from config import Config
 from characters.player import Player
 from characters.mob import Enemy, NormalEnemy, FastEnemy, EnhancedEnemy, HeavyEnemy
 from classes import Shield, Base, Tile, Spawn
 import collisions
 import render
+
+
+def time_passed(enemy_respawn_time, appearance_delay):
+    if pygame.time.get_ticks() - enemy_respawn_time >= appearance_delay:
+        return True
+    else:
+        return False
 
 
 def get_time():
@@ -136,9 +142,8 @@ while running:
         Config.current_score_top = -100
         Config.level_number = 1
         Config.total_score = 0
-        Config.total_enemy = 5         # Количество противников на весь уровень
-        Config.remaining_enemy_count = Config.total_enemy # Оставшееся количество противников
-        Config.current_enemy_count = 0 # Текущее количество противников на карте
+        Config.total_enemy_level = 5         # Количество противников на весь уровень
+        Config.remaining_enemy_count = Config.total_enemy_level # Оставшееся количество противников
         Config.total_enemy_count = 0 # Общее количество появившихся противников
         Config.new_enemies_number = 0 # Количество противников, которое нужно добавить после применения улучшения Gun
         Config.hits_interval = 0
@@ -165,14 +170,18 @@ while running:
                     Tile(j * s + s / 2, i * s + s / 2, name)
 
         # Создание меток появления
-        Config.spawn_coordinates_x = ["" for i in range(Config.total_enemy)]
+        Config.spawn_coordinates_x = ["" for i in range(Config.total_enemy_level)]
         Config.coordinates_lst = [0 * 50, 6 * 50, 12 * 50]
         Config.spawn_coordinates_x[0] = random.choice(Config.coordinates_lst) # Создание списка координат появления
-        for i in range(1, Config.total_enemy):              # Создание списка координат появления
+        for i in range(1, Config.total_enemy_level):              # Создание списка координат появления
             lst = Config.coordinates_lst.copy()
             lst.remove(Config.spawn_coordinates_x[i - 1])
             Config.spawn_coordinates_x[i] = random.choice(lst)
         Spawn(Config.spawn_coordinates_x[0]) # Создание первой метки появления
+
+        # Создание очереди для танков противника
+        for i in range(Config.total_enemy_level):
+            Config.enemies_to_spawn_queue.push([i, Config.spawn_coordinates_x[i]])
 
     if game_over:
         show_game_over_screen()
@@ -223,9 +232,8 @@ while running:
         Config.current_score = ""
         Config.current_score_centerx = -100
         Config.current_score_top = -100
-        Config.total_enemy = 5
-        Config.remaining_enemy_count = Config.total_enemy
-        Config.current_enemy_count = 0
+        Config.total_enemy_level = 5
+        Config.remaining_enemy_count = Config.total_enemy_level
         Config.total_enemy_count = 0
         Config.new_enemies_number = 0
         Config.hits_interval = 0
@@ -251,14 +259,18 @@ while running:
                     Tile(j * s + s / 2, i * s + s / 2, name)
 
         # Создание меток появления
-        Config.spawn_coordinates_x = ["" for i in range(Config.total_enemy)]
+        Config.spawn_coordinates_x = ["" for i in range(Config.total_enemy_level)]
         Config.coordinates_lst = [0 * 50, 6 * 50, 12 * 50]
         Config.spawn_coordinates_x[0] = random.choice(Config.coordinates_lst) # Создание списка координат появления
-        for i in range(1, Config.total_enemy):              # Создание списка координат появления
+        for i in range(1, Config.total_enemy_level):              # Создание списка координат появления
             lst = Config.coordinates_lst.copy()
             lst.remove(Config.spawn_coordinates_x[i - 1])
             Config.spawn_coordinates_x[i] = random.choice(lst)
         Spawn(Config.spawn_coordinates_x[0]) # Создание первой метки появления
+
+        # Создание очереди для танков противника
+        for i in range(Config.total_enemy_level):
+            Config.enemies_to_spawn_queue.push([i, Config.spawn_coordinates_x[i]])
 
     # Держим цикл на правильной скорости
     Config.clock.tick(Config.FPS)
@@ -287,38 +299,41 @@ while running:
         Config.all_sprites.update()
         Config.now = pygame.time.get_ticks()
         Config.formatted_now_time = get_time() 
-        
+
         # Добавление первых противников и меток появления
         enemies_lst = [NormalEnemy] # Список подклассов противника
-        if Config.total_enemy_count < 3 and Config.now - Config.enemy_respawn_time >= Config.appearance_delay:
+        passed_value = time_passed(Config.enemy_respawn_time, Config.appearance_delay)
+        if passed_value and Config.total_enemy_count < 3:
             Config.enemy_respawn_time = Config.now
-            random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count]) # Создание противника
-            Config.current_enemy_count += 1
+            enemy = Config.enemies_to_spawn_queue.pop()
+            Config.enemies_on_map_array.append(random.choice(enemies_lst)(enemy[0], enemy[1])) # Создание противника
             Config.total_enemy_count += 1
             if Config.total_enemy_count < 3:
                 Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
 
         # Добавление остальных противников и меток появления
-        if Config.now - Config.enemy_respawn_time >= Config.appearance_delay and Config.remaining_enemy_count >= 3 and Config.current_enemy_count < 3:
-            if Config.current_enemy_count == 2 and Config.new_enemies_number == 0:
+        passed_value = time_passed(Config.enemy_respawn_time, Config.appearance_delay)
+        if passed_value and Config.remaining_enemy_count >= 3 and len(Config.enemies_on_map_array) < 3:
+            if len(Config.enemies_on_map_array) == 2 and Config.new_enemies_number == 0:
                 Config.enemy_respawn_time = Config.now
-            if Config.current_enemy_count == 1 and Config.new_enemies_number == 0:
+            if len(Config.enemies_on_map_array) == 1 and Config.new_enemies_number == 0:
                 Config.enemy_respawn_time += Config.hits_interval
             if Config.new_enemies_number != 0: # После применения улучшения Gun
                 Config.enemy_respawn_time = Config.now
-            random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count])
-            Config.current_enemy_count += 1
+            enemy = Config.enemies_to_spawn_queue.pop()
+            Config.enemies_on_map_array.append(random.choice(enemies_lst)(enemy[0], enemy[1])) # Создание противника
             Config.total_enemy_count += 1
             while Config.new_enemies_number != 0: # После применения улучшения Gun
                 Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
                 Config.new_enemies_number -= 1
 
         # Добавление последних противников
-        if (Config.now - Config.enemy_respawn_time >= Config.appearance_delay and Config.remaining_enemy_count < 3 
-            and Config.remaining_enemy_count != Config.current_enemy_count):
+        passed_value = time_passed(Config.enemy_respawn_time, Config.appearance_delay)
+        if (passed_value and Config.remaining_enemy_count < 3 
+            and Config.remaining_enemy_count != len(Config.enemies_on_map_array)):
             Config.enemy_respawn_time = Config.now
-            random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count])
-            Config.current_enemy_count += 1
+            enemy = Config.enemies_to_spawn_queue.pop()
+            Config.enemies_on_map_array.append(random.choice(enemies_lst)(enemy[0], enemy[1])) # Создание противника
             Config.total_enemy_count += 1
             while Config.new_enemies_number != 0: # После применения улучшения Gun
                 Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])

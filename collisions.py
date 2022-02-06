@@ -128,14 +128,14 @@ def collide():
             Config.current_score = 100
             Config.current_score_centerx = hit.rect.centerx + 20
             Config.current_score_top = hit.rect.top + 20
-            Config.current_enemy_count -= 1
+            Config.enemies_on_map_array.remove(hit)
             Config.remaining_enemy_count -= 1
-            if Config.current_enemy_count == 2:
+            if len(Config.enemies_on_map_array) == 2:
                 Config.enemy_respawn_time = Config.now
             if Config.remaining_enemy_count >= 3:
-                if Config.current_enemy_count == 2:
+                if len(Config.enemies_on_map_array) == 2:
                     Spawn(Config.spawn_coordinates_x[Config.total_enemy_count]) 
-                if Config.current_enemy_count == 1:
+                if len(Config.enemies_on_map_array) == 1:
                     Spawn(Config.spawn_coordinates_x[Config.total_enemy_count + 1]) 
             Config.total_score += 100
             Explosion(hit.rect.center)
@@ -255,11 +255,11 @@ def collide():
             pass
         if hit.type == "gun":
             if Config.enemies:
-                Config.new_enemies_number = Config.remaining_enemy_count - Config.current_enemy_count # Количество противников,
+                Config.new_enemies_number = Config.remaining_enemy_count - len(Config.enemies_on_map_array) # Количество противников,
                 for enemy in Config.enemies:                              # которое нужно добавить после очистки карты
                     enemy.kill()
                     Config.remaining_enemy_count -= 1
-                Config.current_enemy_count = 0
+                Config.enemies_on_map_array.clear()
                 Config.enemy_respawn_time = Config.now
                 if Config.new_enemies_number != 0:
                     Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])

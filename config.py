@@ -1,7 +1,7 @@
 import pygame
 import os
 import math
-from structures import GridWithWeights
+from structures import GridWithWeights, Queue
 
 
 class Config():
@@ -180,9 +180,10 @@ class Config():
     current_score_top = None
     level_number = None
     total_score = None
-    total_enemy = None         # Количество противников на весь уровень
+    enemies_to_spawn_queue = Queue() # Очередь из ожидающих появления противников
+    enemies_on_map_array = []        # Количество противников на карте
+    total_enemy_level = None         # Количество противников на весь уровень
     remaining_enemy_count = None # Оставшееся количество противников
-    current_enemy_count = None # Текущее количество противников на карте
     total_enemy_count = None # Общее количество появившихся противников
     new_enemies_number = None # Количество противников, которое нужно добавить после применения улучшения Gun
     hits_interval = None

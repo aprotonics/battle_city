@@ -119,7 +119,7 @@ class Player(pygame.sprite.Sprite):
             self.graph_coordinate_y = nearest_node[1]
 
         if (keystate[pygame.K_SPACE] == True and
-        (Config.current_enemy_count > 1 or Config.remaining_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
+        (len(Config.enemies_on_map_array) > 1 or Config.remaining_enemy_count < 2)): # Блокировка стрельбы, если на поле всего 1 противник
             self.shoot()
 
     def stop(self):
