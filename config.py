@@ -152,6 +152,7 @@ class Config():
     enemy_mode2_duration = 10000
 
     start_time = None
+    pause_total_time = None
     enemy_respawn_time = None
     last_enemy_hit_time = None
     last_player_hit_time = None

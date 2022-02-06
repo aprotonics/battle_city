@@ -14,7 +14,7 @@ import render
 
 def get_time():
     now = pygame.time.get_ticks()
-    current_seconds = math.trunc((now - Config.start_time) / 1000)
+    current_seconds = math.trunc((now - Config.start_time - Config.pause_total_time) / 1000)
     current_minutes = 0
     while current_seconds >= 60:
         current_minutes += 1
@@ -95,12 +95,14 @@ Config.font_name = pygame.font.match_font("Arial")
 before_start = True
 level_won = False
 running = True
+game_pause = False
 game_over = False
 while running:
     if before_start: 
         show_start_screen()
         before_start = False
         Config.start_time = pygame.time.get_ticks()
+        Config.pause_total_time = 0
         Config.enemy_respawn_time = Config.start_time
         Config.last_enemy_hit_time = Config.start_time
         Config.last_player_hit_time = Config.start_time
@@ -171,7 +173,7 @@ while running:
             lst.remove(Config.spawn_coordinates_x[i - 1])
             Config.spawn_coordinates_x[i] = random.choice(lst)
         Spawn(Config.spawn_coordinates_x[0]) # Создание первой метки появления
-        
+
     if game_over:
         show_game_over_screen()
         game_over = False
@@ -188,6 +190,7 @@ while running:
         Config.graph.walls = []
 
         Config.start_time = pygame.time.get_ticks()
+        Config.pause_total_time = 0
         Config.enemy_respawn_time = Config.start_time
         Config.last_enemy_hit_time = Config.start_time
         Config.last_player_hit_time = Config.start_time
@@ -266,104 +269,115 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_p and not game_pause:
+                game_pause = True
+                pause_start_time = pygame.time.get_ticks()
+                pygame.mixer.pause()
+            elif event.key == pygame.K_p and game_pause:
+                game_pause = False
+                pause_end_time = pygame.time.get_ticks()
+                pause_time = pause_end_time - pause_start_time
+                Config.pause_total_time += pause_time
+                pygame.mixer.unpause()
             if event.key == pygame.K_q or event.key == pygame.K_ESCAPE:
                 running = False
-    
+        
     ##### Обновление
-    Config.all_sprites.update()
-    Config.now = pygame.time.get_ticks()
-    Config.formatted_now_time = get_time() 
-    
-    # Добавление первых противников и меток появления
-    enemies_lst = [NormalEnemy] # Список подклассов противника
-    if Config.total_enemy_count < 3 and Config.now - Config.enemy_respawn_time >= Config.appearance_delay:
-        Config.enemy_respawn_time = Config.now
-        random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count]) # Создание противника
-        Config.current_enemy_count += 1
-        Config.total_enemy_count += 1
-        if Config.total_enemy_count < 3:
-            Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
-
-    # Добавление остальных противников и меток появления
-    if Config.now - Config.enemy_respawn_time >= Config.appearance_delay and Config.remaining_enemy_count >= 3 and Config.current_enemy_count < 3:
-        if Config.current_enemy_count == 2 and Config.new_enemies_number == 0:
+    if not game_pause:
+        Config.all_sprites.update()
+        Config.now = pygame.time.get_ticks()
+        Config.formatted_now_time = get_time() 
+        
+        # Добавление первых противников и меток появления
+        enemies_lst = [NormalEnemy] # Список подклассов противника
+        if Config.total_enemy_count < 3 and Config.now - Config.enemy_respawn_time >= Config.appearance_delay:
             Config.enemy_respawn_time = Config.now
-        if Config.current_enemy_count == 1 and Config.new_enemies_number == 0:
-            Config.enemy_respawn_time += Config.hits_interval
-        if Config.new_enemies_number != 0: # После применения улучшения Gun
+            random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count]) # Создание противника
+            Config.current_enemy_count += 1
+            Config.total_enemy_count += 1
+            if Config.total_enemy_count < 3:
+                Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
+
+        # Добавление остальных противников и меток появления
+        if Config.now - Config.enemy_respawn_time >= Config.appearance_delay and Config.remaining_enemy_count >= 3 and Config.current_enemy_count < 3:
+            if Config.current_enemy_count == 2 and Config.new_enemies_number == 0:
+                Config.enemy_respawn_time = Config.now
+            if Config.current_enemy_count == 1 and Config.new_enemies_number == 0:
+                Config.enemy_respawn_time += Config.hits_interval
+            if Config.new_enemies_number != 0: # После применения улучшения Gun
+                Config.enemy_respawn_time = Config.now
+            random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count])
+            Config.current_enemy_count += 1
+            Config.total_enemy_count += 1
+            while Config.new_enemies_number != 0: # После применения улучшения Gun
+                Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
+                Config.new_enemies_number -= 1
+
+        # Добавление последних противников
+        if (Config.now - Config.enemy_respawn_time >= Config.appearance_delay and Config.remaining_enemy_count < 3 
+            and Config.remaining_enemy_count != Config.current_enemy_count):
             Config.enemy_respawn_time = Config.now
-        random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count])
-        Config.current_enemy_count += 1
-        Config.total_enemy_count += 1
-        while Config.new_enemies_number != 0: # После применения улучшения Gun
-            Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
-            Config.new_enemies_number -= 1
+            random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count])
+            Config.current_enemy_count += 1
+            Config.total_enemy_count += 1
+            while Config.new_enemies_number != 0: # После применения улучшения Gun
+                Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
+                Config.new_enemies_number -= 1
+        
+        # Добавление обработки столкновений
+        collisions.collide()
 
-    # Добавление последних противников
-    if (Config.now - Config.enemy_respawn_time >= Config.appearance_delay and Config.remaining_enemy_count < 3 
-        and Config.remaining_enemy_count != Config.current_enemy_count):
-        Config.enemy_respawn_time = Config.now
-        random.choice(enemies_lst)(Config.total_enemy_count, Config.spawn_coordinates_x[Config.total_enemy_count])
-        Config.current_enemy_count += 1
-        Config.total_enemy_count += 1
-        while Config.new_enemies_number != 0: # После применения улучшения Gun
-            Spawn(Config.spawn_coordinates_x[Config.total_enemy_count])
-            Config.new_enemies_number -= 1
-    
-    # Добавление обработки столкновений
-    collisions.collide()
+        # Если прошла ли 1 секунда после появления локальных очков
+        if Config.now - Config.last_enemy_hit_time > 1000 and Config.now - Config.powerup_hit_time > 1000:
+            Config.current_score = ""
 
-    # Если прошла ли 1 секунда после появления локальных очков
-    if Config.now - Config.last_enemy_hit_time > 1000 and Config.now - Config.powerup_hit_time > 1000:
-        Config.current_score = ""
+        # Если у игрока кончились жизни, игра окончена
+        if Config.player.lives == 0 and Config.now - Config.last_player_hit_time > 2000 and not before_start:
+            try:
+                Config.game_over_sound.play()
+            except:
+                pass
+            game_over = True
 
-    # Если у игрока кончились жизни, игра окончена
-    if Config.player.lives == 0 and Config.now - Config.last_player_hit_time > 2000 and not before_start:
-        try:
-            Config.game_over_sound.play()
-        except:
-            pass
-        game_over = True
+        # Если противники закончились, уровень пройден
+        if (Config.remaining_enemy_count == 0 and Config.now - Config.last_enemy_hit_time > 2000 and
+            Config.now - Config.powerup_hit_time > 2000):
+            Config.player_image = Config.player.first_image
+            Config.player_level = Config.player.level
+            Config.player_lives = Config.player.lives
+            level_won = True
 
-    # Если противники закончились, уровень пройден
-    if (Config.remaining_enemy_count == 0 and Config.now - Config.last_enemy_hit_time > 2000 and
-        Config.now - Config.powerup_hit_time > 2000):
-        Config.player_image = Config.player.first_image
-        Config.player_level = Config.player.level
-        Config.player_lives = Config.player.lives
-        level_won = True
+        # Если прошло время заморозки противников
+        if Config.frozen_time:
+            if Config.now - Config.freeze_time > 5000:
+                for enemy in Config.enemies:
+                    enemy.frozen = False
+                Config.frozen_time = False
 
-    # Если прошло время заморозки противников
-    if Config.frozen_time:
-        if Config.now - Config.freeze_time > 5000:
-            for enemy in Config.enemies:
-                enemy.frozen = False
-            Config.frozen_time = False
+        # Если база уничтожена
+        if Config.base.destroyed and not before_start:
+            if Config.game_over_string_top > Config.HEIGHT / 2:
+                Config.game_over_string_top -= 3
+            for enemy in Config.enemies_mode3:
+                enemy.change_mode(3, 1)
+            for enemy in Config.enemies_mode2:
+                enemy.change_mode(2, 1)
 
-    # Если база уничтожена
-    if Config.base.destroyed and not before_start:
-        if Config.game_over_string_top > Config.HEIGHT / 2:
-            Config.game_over_string_top -= 3
-        for enemy in Config.enemies_mode3:
-            enemy.change_mode(3, 1)
+        # Если база уничтожена, игра окончена
+        if Config.base.destroyed and Config.now - Config.base.destroyed_time > 3000 and not before_start:
+            Config.player.kill()
+            Config.player_level = 0
+            Config.player_image = Config.player_images[0]
+            game_over = True
+
+        # Если движение противника парализовано, сменить режим на №1
         for enemy in Config.enemies_mode2:
-            enemy.change_mode(2, 1)
-
-    # Если база уничтожена, игра окончена
-    if Config.base.destroyed and Config.now - Config.base.destroyed_time > 3000 and not before_start:
-        Config.player.kill()
-        Config.player_level = 0
-        Config.player_image = Config.player_images[0]
-        game_over = True
-
-    # Если движение противника парализовано, сменить режим на №1
-    for enemy in Config.enemies_mode2:
-        if enemy.moving_blocked == True and pygame.time.get_ticks() - enemy.moving_blocked_time > enemy.timeout:
-            enemy.change_mode(2, 1)
-    
-    for enemy in Config.enemies_mode3:
-        if enemy.moving_blocked == True and pygame.time.get_ticks() - enemy.moving_blocked_time > enemy.timeout:
-            enemy.change_mode(3, 1)
+            if enemy.moving_blocked == True and pygame.time.get_ticks() - enemy.moving_blocked_time > enemy.timeout:
+                enemy.change_mode(2, 1)
+        
+        for enemy in Config.enemies_mode3:
+            if enemy.moving_blocked == True and pygame.time.get_ticks() - enemy.moving_blocked_time > enemy.timeout:
+                enemy.change_mode(3, 1)
     
     ##### Визуализация (сборка)
     render.render()
