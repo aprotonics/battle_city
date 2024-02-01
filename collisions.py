@@ -199,7 +199,6 @@ def collide():
                 enemy.rotate()
                 break
             if tile.type == "ICE":
-                print("Ice")
                 enemy.speed = 4
                 Config.enemies_on_ice.add(enemy)
                 

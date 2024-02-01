@@ -227,7 +227,9 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = old_center
 
-    def move(self):  # Добавить
+    def move(self):
+        if self in Config.enemies_on_ice:
+            print(f"{self.id} enemy is on Ice")
         self.speedx = 0
         self.speedy = 0
 
@@ -489,8 +491,9 @@ class Enemy(pygame.sprite.Sprite):
                 # Если прошла задержка, повернуться
                 if now - self.last_rotate > self.moving_time:
                     self.last_rotate = pygame.time.get_ticks()
-                    self.stop()
-                    self.rotate() 
+                    if self not in Config.enemies_on_ice:
+                        self.stop()
+                        self.rotate() 
 
                 # Проверка на выход за пределы экрана
                 if (self.rect.right > Config.WIDTH or self.rect.left < 0 or
