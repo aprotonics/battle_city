@@ -1,25 +1,4 @@
 import heapq
-from typing import Any
-
-
-class Queue:
-    def __init__(self):
-        self._list = []
-
-    def __repr__(self) -> str:
-        return self._list.__repr__()
-
-    def __len__(self) -> int:
-        return self._list.__len__()
-
-    def push(self, element: Any) -> None:
-        self._list.append(element)
-    
-    def pop(self) -> Any:
-        return self._list.pop(0)
-
-    def clear(self):
-        self._list.clear()
 
 
 class PriorityQueue():
